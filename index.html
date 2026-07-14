@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REVACHOL VENDING MACHINE</title>
+    <style>
+        /* 디스코 엘리시움 특유의 거칠고 어두운 테마 */
+        body {
+            background-color: #0c0c0c;
+            color: #d1d1d1;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        .machine-container {
+            width: 100%;
+            max-width: 550px;
+            background: #151515;
+            border: 2px solid #333;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            text-align: center;
+        }
+
+        h1 {
+            color: #e65100;
+            font-size: 1.6rem;
+            letter-spacing: 5px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px #000;
+            text-transform: uppercase;
+        }
+
+        /* 결과 표시 영역 */
+        #result-area {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            padding: 20px;
+            min-height: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .item-img {
+            max-width: 100%;
+            max-height: 240px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(230, 81, 0, 0.1));
+        }
+
+        .item-name {
+            color: #ffb74d;
+            font-size: 1.35rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            word-break: keep-all;
+        }
+
+        .item-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #bbb;
+            margin-bottom: 25px;
+            text-align: left;
+            word-break: keep-all;
+        }
+
+        /* 컨트롤 버튼들 */
+        .action-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            background: #222;
+            color: #aaa;
+            border: 1px solid #444;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .action-btn:hover {
+            background: #333;
+            color: #fff;
+            border-color: #e65100;
+        }
+
+        /* 메인 뽑기 버튼 */
+        .draw-btn {
+            background: #e65100;
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 22px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: 0.3s;
+        }
+
+        .draw-btn:hover {
+            background: #ff9800;
+            box-shadow: 0 0 25px rgba(230, 81, 0, 0.4);
+        }
+
+        .draw-btn:active {
+            transform: scale(0.97);
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="machine-container">
+        <h1>MARTINETTI VENDING</h1>
+
+        <div id="result-area">
+            <div class="item-name">준비됨</div>
+            <div class="item-desc" style="text-align:center;">작동시키려면 아래 버튼을 누르십시오.</div>
+        </div>
+
+        <button class="draw-btn" onclick="draw()">아이템 뽑기</button>
+        <div class="footer-note">내면의 목소리가 무언가를 속삭입니다...</div>
+    </div>
+
+    <script>
+        const items = [
+            { name: "인프라-물질주의에 대한 간략한 고찰", desc: "일반 독자를 대상으로 한, 물질주의 이론에 대한 간결한 소개서입니다. 이 책은 누군가의 뒷주머니에 오랫동안 넣어 다녔음을 알 수 있습니다.", url: "https://imgur.com/ajY8S5g.png" },
+            { name: "어린이를 위한 입문서", desc: "초등학교 1학년 교과서 표지입니다. 곰처럼 생긴 사람이 글자로 가득 찬 손수레를 밀고 있는데, 솜씨가 엉망입니다. S는 손수레에서 위태롭게 대롱대롱 매달려 있고, E는 이미 오래전에 떨어져 버렸습니다.", url: "https://imgur.com/AXxK77p.png" },
+            { name: "<<라 푸메>> 1권 4호", desc: "마르티네즈 공산주의의 대표적인 지식 기관지. 다양한 현대 문제에 대한 급진적인 마조비아적 관점을 제시합니다. 표지에는 머리에서 흰 뿔 한 쌍이 자라난 고(故) 프리셀 왕의 양식화된 초상화가 그려져 있습니다.", url: "https://i.imgur.com/b6KWnFW.png" },
+            { name: "코덱스 우리크: 위랄의 근면한 드워그르", desc: "위랄 세계관을 배경으로 하는 이 입문서는 드워프의 기본 유형에 대한 개요를 제공합니다. 또한 수염, 금 채굴, 그리고 술을 중심으로 형성된 드워프의 사회 및 산업 구조에 대해서도 설명합니다.", url: "https://imgur.com/PuqBkac.png" },
+            { name: "딕 멀렌과 잘못된 신분", desc: "딕 멀렌 시리즈의 또 다른 작품으로, 경찰 업무를 심각하게 왜곡하고 있습니다. 이번 작품에서 주인공 형사는 100년 묵은 미제 사건을 해결하고 여행에서 돌아오지만, 또 다른 미제 사건을 맡게 됩니다.", url: "https://i.imgur.com/iEPyRC5.png" },
+            { name: "A부터 Zrieek까지! 앵무새 가이드북", desc: "다양한 앵무새 종과 그들의 행동 문제에 관한 책입니다. 어쩌면 당신의 종종 문제가 되는 행동에 대한 통찰력을 얻을 수도 있을 거예요. 표지에는 멋진 메이저 마제스틱 앵무새가 당신을 바라보고 있습니다.", url: "https://i.imgur.com/hnTxHR1.png" },
+            { name: "가장 순수한 것", desc: "이 낡은 책은 이노센스의 역사에 대한 지식을 담고 있습니다. 메스케 파시스트 인 주앙 파올로 살로마오 로페스 데 푸에고가 썼는데, 그는 이노센스 중 어느 것이 세상에서 가장 멋진지 결론을 내리려고 애쓰고 있군요.", url: "https://i.imgur.com/47sDJw0.png" },
+            { name: "헬름달에서 온 남자와 악마 같은 여자", desc: "이 낡은 페이퍼백 책의 앞표지에는 사슬에 묶인 근육질 남자가 왕좌에 앉은 요염한 여인 앞에 무릎을 꿇고 있는 그림이 그려져 있습니다. 왕좌와 남자 사이에는 모닥불이 피워져 벽에 그림자를 드리우고 있습니다.", url: "https://i.imgur.com/aqlyE2B.png" },
+            { name: "창백한 식물의 약용 용도에 관하여", desc: "작고 초록색인 책 한 권이 묘하게 불길한 느낌을 자아내지만, 그 이유를 정확히 알기는 어렵습니다. 책에는 창백한 액체를 이용해 쇠약해지는 질병을 치료하는 다양한 방법들이 설명되어 있습니다.", url: "https://i.imgur.com/NZ7sxHI.png" },
+            { name: "가장 추운 4월의 16일", desc: "표지에는 흑백 무지개가 떠 있는 하늘 아래 콘크리트 건물들이 줄지어 서 있는 모습이 그려져 있습니다. 이 책은 유고슬라비아의 민족 갈등 시기를 배경으로 두 연인의 가슴 아픈 이야기를 담고 있습니다.", url: "https://i.imgur.com/jPyjZjz.png" },
+            { name: "위랄 주사위", desc: "이 기본적인 24면체 롤플레잉 주사위는 여러 주사위의 결과를 얻는 데 사용할 수 있습니다. 동센산 뱀나무로 만들어졌으며 식물 문양으로 장식되어 있습니다.", url: "https://imgur.com/7TzCneu.png" },
+            { name: "안티-위랄 주사위", desc: "이 기본적인 24면체 롤플레잉 주사위는 여러 주사위의 결과를 얻는 데 사용할 수 있습니다. 악어 턱뼈를 아크릴 수지로 주조하여 만들고 서리 무늬로 장식했습니다.", url: "https://imgur.com/7AYpMVm.png" },
+            { name: "저주 받은 일마란 주사위", desc: "이 구형 주사위는 6가지 문구 중 하나가 위로 향하게 됩니다. [신은 무관심하다, 모두 가져가다, 모두 잃다, 50/50, 아무 일도 일어나지 않다, 창백하다.] 늪지 참나무 옹이로 만들어졌습니다.", url: "https://imgur.com/vGW9iTp.png" },
+            { name: "앰버는 모기에 물려 죽었다", desc: "이 특이한 13면체 주사위는 호박으로 만들어졌습니다. 그 안에는 화석화된 모기가 갇혀 있는데, 영원한 안식의 무게에 다리가 구부러져 있습니다.", url: "https://imgur.com/fWW1ZRH.png" },
+            { name: "정십이면체 경찰관 주사위 세트", desc: "경찰 경보기의 색깔을 닮았습니다. 빨간색은 블러드스톤, 파란색은 라피스 라줄리입니다. 주사위를 굴리면 마치 비 내리는 사건 현장에 도착하는 것처럼 보입니다.", url: "https://imgur.com/7oJ8VAj.png" },
+            { name: "아스트라", desc: "그라드에서 제조한 이 담배는 높은 타르 함량으로 유명합니다. 전 세계 어부, 경찰관, 노동자들이 즐겨 피우는 담배입니다.", url: "https://imgur.com/gpKcs0E.png" },
+            { name: "티우모티리", desc: "이 담배들은 유난히 달콤한 냄새가 납니다. 각각의 담배에는 원통형 모자를 쓴 소년의 실루엣이 그려져 있습니다.", url: "https://imgur.com/igNBjxO.png" },
+            { name: "피르홀리돈", desc: "보라색 액체가 담긴 작고 예쁜 뚜껑은 열감부터 정신병까지 유발할 수 있습니다. 하지만 어떤 날씨든 잠시나마 따뜻하게 느껴지게 해줍니다.", url: "https://imgur.com/n8MmISc.png" },
+            { name: "숙성된 창백한 보드카", desc: "사라진 비행선 하르난쿠르를 기념하기 위해 배 모양의 병에 담겨 있습니다. 간을 완전히 날려버리는 이보다 더 황홀한 경험은 없을 겁니다.", url: "https://imgur.com/buGcPS4.png" },
+            { name: "코모어 레드", desc: "가난, 설탕, 인공 향미 증진제, 그리고 희미한 포도 향으로 만들어진 값싼 와인. 마시면 입술이 붉게 물들 게 분명합니다.", url: "https://imgur.com/hQTNv4f.png" },
+            { name: "양조주", desc: "뜨거운 보르쉬에 독한 술을 넣어 보온컵에 가득 담았습니다. 맛있겠다.", url: "https://imgur.com/5sDgX6T.png" },
+            { name: "프렙타이드", desc: "햇살처럼 밝고 경쾌한 분위기의 주황색 약병. 누군가 약병을 잃어버렸지만, 뭐 어때요!", url: "https://imgur.com/Lexr2lc.png" },
+            { name: "스피드 보틀", desc: "작은 암페타민 병에 빨대를 달았군요. 트럭 운전사들이 이동 중에 빠르게 약을 복용하기에 딱이겠어요.", url: "https://imgur.com/h5tWWZZ.png" },
+            { name: "수륙양용 스포츠 바이저", desc: "챙에 달린 기형적인 녹색 개구리는 마치 주변을 살피는 듯합니다. 연두색 셀로판 포장은 조잡하며, 'Safre 에서 제조'라는 글자가 찍혀 있습니다.", url: "https://imgur.com/50NKcPG.png" },
+            { name: "트럭 운전사 모자", desc: "긴 챙과 메쉬 소재의 뒷면이 있는 이 모자는 햇빛을 가려주고 땀이 잘 빠져나가도록 해줍니다. 여름에 더 유용할 것 같네요.", url: "https://imgur.com/c2Ea28F.png" },
+            { name: "잼록 바이커 선글라스", desc: "하멜-리우 슈퍼소니크를 타고 잼록의 거리를 질주하세요. 바로 그곳, 당신의 마음이 묻혀 있는 곳에서 말이죠.", url: "https://imgur.com/Ldq7SwE.png" },
+            { name: "RMC 중위 모자", desc: "튼튼하고 모양이 잘 유지됩니다. 안쪽에서는 싸구려 담배와 타자기 잉크 냄새가 납니다. 어떻게 이걸 얻었는지는 미스터리입니다.", url: "https://imgur.com/HaCFGuc.png" },
+            { name: "깔끔한 사무용 선글라스", desc: "햇빛이 눈에 들어올 때 서류 작업을 휘갈겨 쓰기에 딱이죠. 용의자를 노려볼 때도 좋고요.", url: "https://imgur.com/zeHmPoy.png" },
+            { name: "디스코 ASS 블레이저", desc: "멸종한 디스코풍 동물의 가죽을 벗겨 만든 것 같습니다. 등과 오른쪽 소매에는 수수께끼 같은 흰색 직사각형 무늬가 있습니다.", url: "https://imgur.com/qIc5RLo.png" },
+            { name: "FLAN 표준 바람막이", desc: "합성 소재로 만든 밀폐된 재킷. 바람, 물, 먼지로부터 보호해주지만 방염 처리가 되어 있지 않으니 불을 조심하세요.", url: "https://imgur.com/FqYMYp1.png" },
+            { name: "가죽 재킷(*까라 세상아)", desc: "재킷 뒷면에는 진정한 사랑의 의미를 알았던 불량배의 가명이 적혀 있습니다. 꽤나 강렬한 메시지죠.", url: "https://imgur.com/kr6s30D.png" },
+            { name: "RCM 순찰 재킷", desc: "두꺼운 방수포 재킷. 표면에 총알 구멍 세 개가 나 있습니다. 뒷면에는 RCM의 상징인 흰색 직사각형 무늬가 있습니다.", url: "https://imgur.com/JuoqYoa.png" },
+            { name: "RCM 사령관 재킷", desc: "오른쪽 소매와 뒷면에 RCM의 상징인 흰색 직사각형 무늬가 있는 검정색 제복 재킷입니다. 상태가 매우 훌륭합니다.", url: "https://imgur.com/6bemjX4.png" }
+        ];
+
+        function draw() {
+            const area = document.getElementById('result-area');
+            const item = items[Math.floor(Math.random() * items.length)];
+
+            area.innerHTML = `
+                <img src="${item.url}" class="item-img" id="current-img">
+                <div class="item-name">${item.name}</div>
+                <div class="item-desc" id="current-desc">${item.desc}</div>
+                <div class="action-group">
+                    <button class="action-btn" onclick="copyText()">텍스트 복사</button>
+                    <button class="action-btn" onclick="saveImg('${item.url}', '${item.name}')">이미지 저장</button>
+                    <button class="action-btn" onclick="window.open('${item.url}', '_blank')">원본 링크</button>
+                </div>
+            `;
+        }
+
+        function copyText() {
+            const name = document.querySelector('.item-name').innerText;
+            const desc = document.getElementById('current-desc').innerText;
+            const fullText = `${name}\n\n${desc}`;
+            
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert("아이템 정보가 복사되었습니다.");
+            });
+        }
+
+        async function saveImg(url, name) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `${name}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                // CORS 문제 발생 시 새 창 열기
+                window.open(url, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
