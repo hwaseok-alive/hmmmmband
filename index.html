@@ -1,230 +1,788 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REVACHOL VENDING MACHINE</title>
-    <style>
-        /* 디스코 엘리시움 특유의 거칠고 어두운 테마 */
-        body {
-            background-color: #0c0c0c;
-            color: #d1d1d1;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 20px;
-            margin: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>밴드 PDF/텍스트 ➡️ 카카오톡 대화방 변환기</title>
+  <!-- PDF.js for client-side PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <!-- html2pdf.js for generating styled PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    :root {
+      --primary-color: #3b5998;
+      --accent-color: #fee500;
+      --bg-color: #f5f6f8;
+      --chat-bg: #bacee0;
+      --border-color: #e4e6eb;
+    }
 
-        .machine-container {
-            width: 100%;
-            max-width: 550px;
-            background: #151515;
-            border: 2px solid #333;
-            padding: 30px;
-            box-shadow: 0 0 40px rgba(0,0,0,0.9);
-            text-align: center;
-        }
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
 
-        h1 {
-            color: #e65100;
-            font-size: 1.6rem;
-            letter-spacing: 5px;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px #000;
-            text-transform: uppercase;
-        }
+    body {
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-        /* 결과 표시 영역 */
-        #result-area {
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            padding: 20px;
-            min-height: 480px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-            transition: all 0.3s;
-        }
+    /* Sidebar controls */
+    #sidebar {
+      width: 420px;
+      background: white;
+      border-right: 1px solid var(--border-color);
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+      height: 100%;
+    }
 
-        .item-img {
-            max-width: 100%;
-            max-height: 240px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 0 10px rgba(230, 81, 0, 0.1));
-        }
+    .app-title {
+      margin: 0 0 5px 0;
+      font-size: 20px;
+      font-weight: 800;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .item-name {
-            color: #ffb74d;
-            font-size: 1.35rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-            word-break: keep-all;
-        }
+    .app-subtitle {
+      font-size: 13px;
+      color: #666;
+      margin: 0 0 15px 0;
+      line-height: 1.4;
+    }
 
-        .item-desc {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #bbb;
-            margin-bottom: 25px;
-            text-align: left;
-            word-break: keep-all;
-        }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        /* 컨트롤 버튼들 */
-        .action-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
 
-        .action-btn {
-            background: #222;
-            color: #aaa;
-            border: 1px solid #444;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: 0.2s;
-            font-family: inherit;
-        }
+    .input-field {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccd0d5;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
 
-        .action-btn:hover {
-            background: #333;
-            color: #fff;
-            border-color: #e65100;
-        }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
 
-        /* 메인 뽑기 버튼 */
-        .draw-btn {
-            background: #e65100;
-            color: #000;
-            border: none;
-            width: 100%;
-            padding: 22px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            transition: 0.3s;
-        }
+    textarea.input-field {
+      height: 100px;
+      resize: none;
+    }
 
-        .draw-btn:hover {
-            background: #ff9800;
-            box-shadow: 0 0 25px rgba(230, 81, 0, 0.4);
-        }
+    /* File upload styling */
+    .file-dropzone {
+      border: 2px dashed #ccd0d5;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      background: #fafafa;
+      transition: background 0.2s, border-color 0.2s;
+    }
 
-        .draw-btn:active {
-            transform: scale(0.97);
-        }
+    .file-dropzone:hover {
+      background: #f0f2f5;
+      border-color: var(--primary-color);
+    }
 
-        .footer-note {
-            margin-top: 20px;
-            font-size: 0.75rem;
-            color: #444;
-        }
-    </style>
+    .file-dropzone p {
+      margin: 0;
+      font-size: 13px;
+      color: #65676b;
+    }
+
+    .file-dropzone input {
+      display: none;
+    }
+
+    /* Dynamic profile lists */
+    .profile-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #f7f8fa;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .profile-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+      background: white;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e4e6eb;
+    }
+
+    .profile-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .profile-name-area {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .profile-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .profile-badge.me {
+      background-color: #fee500;
+      color: #3c1e1e;
+    }
+
+    .profile-badge.other {
+      background-color: #e4e6eb;
+      color: #444;
+    }
+
+    .avatar-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #ddd;
+      object-fit: cover;
+      border: 1px solid #ccc;
+    }
+
+    .file-select-btn {
+      font-size: 11px;
+      padding: 4px 8px;
+      background: #fff;
+      border: 1px solid #ccd0d5;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Action Buttons */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background-color: #0084ff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #006dd6;
+    }
+
+    .btn-success {
+      background-color: #42b72a;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #369822;
+    }
+
+    /* Chat Preview Window */
+    #preview-area {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    /* Phone screen outer box */
+    .phone-container {
+      width: 420px;
+      height: 780px;
+      background-color: var(--chat-bg);
+      border-radius: 30px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+      border: 8px solid #222;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Status bar mock */
+    .phone-status-bar {
+      height: 25px;
+      background: rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 11px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    /* Chat room header */
+    .chat-header {
+      height: 50px;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      font-weight: bold;
+      color: #1c1e21;
+      font-size: 15px;
+    }
+
+    /* Chat scroll area */
+    .chat-messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Hide scrollbar for clean export */
+    .chat-messages-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Chat Message Bubbles */
+    .chat-item {
+      display: flex;
+      align-items: flex-start;
+      max-width: 85%;
+      width: 100%;
+    }
+
+    /* Left Chat (Other users) */
+    .chat-item.other {
+      align-self: flex-start;
+      margin-right: auto;
+    }
+
+    /* Right Chat (Me) */
+    .chat-item.me {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+      margin-left: auto;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 0 8px;
+      background-color: #ddd;
+      border: 1px solid rgba(0,0,0,0.05);
+      flex-shrink: 0;
+    }
+
+    .chat-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-item.me .chat-content {
+      align-items: flex-end;
+    }
+
+    .chat-sender-name {
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 3px;
+      margin-left: 2px;
+      font-weight: 600;
+    }
+
+    .chat-bubble-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .chat-item.me .chat-bubble-wrapper {
+      flex-direction: row-reverse;
+    }
+
+    .chat-bubble {
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-all;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .chat-item.other .chat-bubble {
+      background-color: white;
+      color: black;
+      border-top-left-radius: 2px;
+    }
+
+    .chat-item.me .chat-bubble {
+      background-color: var(--accent-color);
+      color: #1a1a1a;
+      border-top-right-radius: 2px;
+    }
+
+    .chat-time {
+      font-size: 9px;
+      color: #777;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    /* Instructions / Empty state */
+    .empty-state {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin: auto;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #loading-overlay {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #555;
+      margin-top: 10px;
+    }
+
+    /* Checkbox list styling */
+    .user-toggle-checkbox {
+      margin-right: 8px;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="machine-container">
-        <h1>MARTINETTI VENDING</h1>
-
-        <div id="result-area">
-            <div class="item-name">준비됨</div>
-            <div class="item-desc" style="text-align:center;">작동시키려면 아래 버튼을 누르십시오.</div>
-        </div>
-
-        <button class="draw-btn" onclick="draw()">아이템 뽑기</button>
-        <div class="footer-note">내면의 목소리가 무언가를 속삭입니다...</div>
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div>
+      <h1 class="app-title">💬 밴드 대화창 파서</h1>
+      <p class="app-subtitle">밴드 댓글 캡처 PDF를 업로드하거나 댓글 텍스트를 복사해 붙여넣으면 나와 상대를 자동 식별하여 카카오톡 형태의 세련된 대화방으로 재구성합니다.</p>
     </div>
 
-    <script>
-        const items = [
-            { name: "인프라-물질주의에 대한 간략한 고찰", desc: "일반 독자를 대상으로 한, 물질주의 이론에 대한 간결한 소개서입니다. 이 책은 누군가의 뒷주머니에 오랫동안 넣어 다녔음을 알 수 있습니다.", url: "https://imgur.com/ajY8S5g.png" },
-            { name: "어린이를 위한 입문서", desc: "초등학교 1학년 교과서 표지입니다. 곰처럼 생긴 사람이 글자로 가득 찬 손수레를 밀고 있는데, 솜씨가 엉망입니다. S는 손수레에서 위태롭게 대롱대롱 매달려 있고, E는 이미 오래전에 떨어져 버렸습니다.", url: "https://imgur.com/AXxK77p.png" },
-            { name: "<<라 푸메>> 1권 4호", desc: "마르티네즈 공산주의의 대표적인 지식 기관지. 다양한 현대 문제에 대한 급진적인 마조비아적 관점을 제시합니다. 표지에는 머리에서 흰 뿔 한 쌍이 자라난 고(故) 프리셀 왕의 양식화된 초상화가 그려져 있습니다.", url: "https://i.imgur.com/b6KWnFW.png" },
-            { name: "코덱스 우리크: 위랄의 근면한 드워그르", desc: "위랄 세계관을 배경으로 하는 이 입문서는 드워프의 기본 유형에 대한 개요를 제공합니다. 또한 수염, 금 채굴, 그리고 술을 중심으로 형성된 드워프의 사회 및 산업 구조에 대해서도 설명합니다.", url: "https://imgur.com/PuqBkac.png" },
-            { name: "딕 멀렌과 잘못된 신분", desc: "딕 멀렌 시리즈의 또 다른 작품으로, 경찰 업무를 심각하게 왜곡하고 있습니다. 이번 작품에서 주인공 형사는 100년 묵은 미제 사건을 해결하고 여행에서 돌아오지만, 또 다른 미제 사건을 맡게 됩니다.", url: "https://i.imgur.com/iEPyRC5.png" },
-            { name: "A부터 Zrieek까지! 앵무새 가이드북", desc: "다양한 앵무새 종과 그들의 행동 문제에 관한 책입니다. 어쩌면 당신의 종종 문제가 되는 행동에 대한 통찰력을 얻을 수도 있을 거예요. 표지에는 멋진 메이저 마제스틱 앵무새가 당신을 바라보고 있습니다.", url: "https://i.imgur.com/hnTxHR1.png" },
-            { name: "가장 순수한 것", desc: "이 낡은 책은 이노센스의 역사에 대한 지식을 담고 있습니다. 메스케 파시스트 인 주앙 파올로 살로마오 로페스 데 푸에고가 썼는데, 그는 이노센스 중 어느 것이 세상에서 가장 멋진지 결론을 내리려고 애쓰고 있군요.", url: "https://i.imgur.com/47sDJw0.png" },
-            { name: "헬름달에서 온 남자와 악마 같은 여자", desc: "이 낡은 페이퍼백 책의 앞표지에는 사슬에 묶인 근육질 남자가 왕좌에 앉은 요염한 여인 앞에 무릎을 꿇고 있는 그림이 그려져 있습니다. 왕좌와 남자 사이에는 모닥불이 피워져 벽에 그림자를 드리우고 있습니다.", url: "https://i.imgur.com/aqlyE2B.png" },
-            { name: "창백한 식물의 약용 용도에 관하여", desc: "작고 초록색인 책 한 권이 묘하게 불길한 느낌을 자아내지만, 그 이유를 정확히 알기는 어렵습니다. 책에는 창백한 액체를 이용해 쇠약해지는 질병을 치료하는 다양한 방법들이 설명되어 있습니다.", url: "https://i.imgur.com/NZ7sxHI.png" },
-            { name: "가장 추운 4월의 16일", desc: "표지에는 흑백 무지개가 떠 있는 하늘 아래 콘크리트 건물들이 줄지어 서 있는 모습이 그려져 있습니다. 이 책은 유고슬라비아의 민족 갈등 시기를 배경으로 두 연인의 가슴 아픈 이야기를 담고 있습니다.", url: "https://i.imgur.com/jPyjZjz.png" },
-            { name: "위랄 주사위", desc: "이 기본적인 24면체 롤플레잉 주사위는 여러 주사위의 결과를 얻는 데 사용할 수 있습니다. 동센산 뱀나무로 만들어졌으며 식물 문양으로 장식되어 있습니다.", url: "https://imgur.com/7TzCneu.png" },
-            { name: "안티-위랄 주사위", desc: "이 기본적인 24면체 롤플레잉 주사위는 여러 주사위의 결과를 얻는 데 사용할 수 있습니다. 악어 턱뼈를 아크릴 수지로 주조하여 만들고 서리 무늬로 장식했습니다.", url: "https://imgur.com/7AYpMVm.png" },
-            { name: "저주 받은 일마란 주사위", desc: "이 구형 주사위는 6가지 문구 중 하나가 위로 향하게 됩니다. [신은 무관심하다, 모두 가져가다, 모두 잃다, 50/50, 아무 일도 일어나지 않다, 창백하다.] 늪지 참나무 옹이로 만들어졌습니다.", url: "https://imgur.com/vGW9iTp.png" },
-            { name: "앰버는 모기에 물려 죽었다", desc: "이 특이한 13면체 주사위는 호박으로 만들어졌습니다. 그 안에는 화석화된 모기가 갇혀 있는데, 영원한 안식의 무게에 다리가 구부러져 있습니다.", url: "https://imgur.com/fWW1ZRH.png" },
-            { name: "정십이면체 경찰관 주사위 세트", desc: "경찰 경보기의 색깔을 닮았습니다. 빨간색은 블러드스톤, 파란색은 라피스 라줄리입니다. 주사위를 굴리면 마치 비 내리는 사건 현장에 도착하는 것처럼 보입니다.", url: "https://imgur.com/7oJ8VAj.png" },
-            { name: "아스트라", desc: "그라드에서 제조한 이 담배는 높은 타르 함량으로 유명합니다. 전 세계 어부, 경찰관, 노동자들이 즐겨 피우는 담배입니다.", url: "https://imgur.com/gpKcs0E.png" },
-            { name: "티우모티리", desc: "이 담배들은 유난히 달콤한 냄새가 납니다. 각각의 담배에는 원통형 모자를 쓴 소년의 실루엣이 그려져 있습니다.", url: "https://imgur.com/igNBjxO.png" },
-            { name: "피르홀리돈", desc: "보라색 액체가 담긴 작고 예쁜 뚜껑은 열감부터 정신병까지 유발할 수 있습니다. 하지만 어떤 날씨든 잠시나마 따뜻하게 느껴지게 해줍니다.", url: "https://imgur.com/n8MmISc.png" },
-            { name: "숙성된 창백한 보드카", desc: "사라진 비행선 하르난쿠르를 기념하기 위해 배 모양의 병에 담겨 있습니다. 간을 완전히 날려버리는 이보다 더 황홀한 경험은 없을 겁니다.", url: "https://imgur.com/buGcPS4.png" },
-            { name: "코모어 레드", desc: "가난, 설탕, 인공 향미 증진제, 그리고 희미한 포도 향으로 만들어진 값싼 와인. 마시면 입술이 붉게 물들 게 분명합니다.", url: "https://imgur.com/hQTNv4f.png" },
-            { name: "양조주", desc: "뜨거운 보르쉬에 독한 술을 넣어 보온컵에 가득 담았습니다. 맛있겠다.", url: "https://imgur.com/5sDgX6T.png" },
-            { name: "프렙타이드", desc: "햇살처럼 밝고 경쾌한 분위기의 주황색 약병. 누군가 약병을 잃어버렸지만, 뭐 어때요!", url: "https://imgur.com/Lexr2lc.png" },
-            { name: "스피드 보틀", desc: "작은 암페타민 병에 빨대를 달았군요. 트럭 운전사들이 이동 중에 빠르게 약을 복용하기에 딱이겠어요.", url: "https://imgur.com/h5tWWZZ.png" },
-            { name: "수륙양용 스포츠 바이저", desc: "챙에 달린 기형적인 녹색 개구리는 마치 주변을 살피는 듯합니다. 연두색 셀로판 포장은 조잡하며, 'Safre 에서 제조'라는 글자가 찍혀 있습니다.", url: "https://imgur.com/50NKcPG.png" },
-            { name: "트럭 운전사 모자", desc: "긴 챙과 메쉬 소재의 뒷면이 있는 이 모자는 햇빛을 가려주고 땀이 잘 빠져나가도록 해줍니다. 여름에 더 유용할 것 같네요.", url: "https://imgur.com/c2Ea28F.png" },
-            { name: "잼록 바이커 선글라스", desc: "하멜-리우 슈퍼소니크를 타고 잼록의 거리를 질주하세요. 바로 그곳, 당신의 마음이 묻혀 있는 곳에서 말이죠.", url: "https://imgur.com/Ldq7SwE.png" },
-            { name: "RMC 중위 모자", desc: "튼튼하고 모양이 잘 유지됩니다. 안쪽에서는 싸구려 담배와 타자기 잉크 냄새가 납니다. 어떻게 이걸 얻었는지는 미스터리입니다.", url: "https://imgur.com/HaCFGuc.png" },
-            { name: "깔끔한 사무용 선글라스", desc: "햇빛이 눈에 들어올 때 서류 작업을 휘갈겨 쓰기에 딱이죠. 용의자를 노려볼 때도 좋고요.", url: "https://imgur.com/zeHmPoy.png" },
-            { name: "디스코 ASS 블레이저", desc: "멸종한 디스코풍 동물의 가죽을 벗겨 만든 것 같습니다. 등과 오른쪽 소매에는 수수께끼 같은 흰색 직사각형 무늬가 있습니다.", url: "https://imgur.com/qIc5RLo.png" },
-            { name: "FLAN 표준 바람막이", desc: "합성 소재로 만든 밀폐된 재킷. 바람, 물, 먼지로부터 보호해주지만 방염 처리가 되어 있지 않으니 불을 조심하세요.", url: "https://imgur.com/FqYMYp1.png" },
-            { name: "가죽 재킷(*까라 세상아)", desc: "재킷 뒷면에는 진정한 사랑의 의미를 알았던 불량배의 가명이 적혀 있습니다. 꽤나 강렬한 메시지죠.", url: "https://imgur.com/kr6s30D.png" },
-            { name: "RCM 순찰 재킷", desc: "두꺼운 방수포 재킷. 표면에 총알 구멍 세 개가 나 있습니다. 뒷면에는 RCM의 상징인 흰색 직사각형 무늬가 있습니다.", url: "https://imgur.com/JuoqYoa.png" },
-            { name: "RCM 사령관 재킷", desc: "오른쪽 소매와 뒷면에 RCM의 상징인 흰색 직사각형 무늬가 있는 검정색 제복 재킷입니다. 상태가 매우 훌륭합니다.", url: "https://imgur.com/6bemjX4.png" }
-        ];
+    <!-- Step 1: Upload PDF or Paste Text -->
+    <div class="form-group">
+      <span class="section-title">1. 밴드 PDF 업로드 또는 텍스트 입력</span>
+      <div class="file-dropzone" onclick="document.getElementById('pdf-file').click()">
+        <p>📄 여기에 <b>밴드 PDF 파일</b>을 드래그하거나 클릭하여 업로드</p>
+        <input type="file" id="pdf-file" accept="application/pdf" onchange="handlePDFUpload(event)">
+      </div>
+      <div id="loading-overlay"><span class="spinner"></span>PDF 텍스트를 분석 중입니다...</div>
+      
+      <div style="text-align: center; margin: 10px 0; color: #aaa; font-size: 12px; font-weight: bold;">OR</div>
+      
+      <textarea id="raw-text" class="input-field" placeholder="여기에 복사한 밴드 댓글 텍스트를 직접 붙여넣으셔도 됩니다."></textarea>
+    </div>
 
-        function draw() {
-            const area = document.getElementById('result-area');
-            const item = items[Math.floor(Math.random() * items.length)];
+    <!-- Step 2: Name Identification -->
+    <div class="form-group">
+      <span class="section-title">2. 인물 역할 설정</span>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <label style="font-size: 11px; font-weight: bold; color: #555;">🙋‍♂️ '나'의 캐릭터 이름 (우측 배치)</label>
+          <input type="text" id="my-name" class="input-field" value="콘스탄틴 하벨" placeholder="예: 콘스탄틴 하벨" oninput="parseAndRender()">
+        </div>
+      </div>
+    </div>
 
-            area.innerHTML = `
-                <img src="${item.url}" class="item-img" id="current-img">
-                <div class="item-name">${item.name}</div>
-                <div class="item-desc" id="current-desc">${item.desc}</div>
-                <div class="action-group">
-                    <button class="action-btn" onclick="copyText()">텍스트 복사</button>
-                    <button class="action-btn" onclick="saveImg('${item.url}', '${item.name}')">이미지 저장</button>
-                    <button class="action-btn" onclick="window.open('${item.url}', '_blank')">원본 링크</button>
-                </div>
-            `;
+    <!-- Step 3: Automatic detected members and Profile pictures with filter option -->
+    <div class="form-group">
+      <span class="section-title">
+        3. 참여자 필터 및 프로필 설정
+        <span style="font-size: 11px; font-weight: normal; color: #777;">(체크된 사람만 대화 표시)</span>
+      </span>
+      <div class="profile-list" id="profile-list">
+        <div style="text-align: center; color: #888; font-size: 12px; padding: 10px;">분석을 완료하면 여기에 필터 및 프로필 설정 칸이 생성됩니다.</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="parseAndRender()">🔄 대화창 다시 생성</button>
+      <button class="btn btn-success" onclick="downloadChatPDF()">📥 대화창 PDF 저장</button>
+    </div>
+  </div>
+
+  <!-- Preview Panel -->
+  <div id="preview-area">
+    <div class="phone-container" id="capture-area">
+      <!-- Status Bar Mock -->
+      <div class="phone-status-bar">
+        <span>12:00</span>
+        <span style="display: flex; gap: 4px; align-items: center;">📶 🔋 100%</span>
+      </div>
+      <!-- Header -->
+      <div class="chat-header" id="chat-title">대화방</div>
+      <!-- Message Area -->
+      <div class="chat-messages-container" id="chat-box">
+        <div class="empty-state">
+          <h3>반갑습니다! 👋</h3>
+          <p>왼쪽 패널에 밴드 PDF를 업로드하거나 댓글 내용을 입력해 보세요.<br><br><b>콘스탄틴 하벨</b> 님의 말은 자동으로 오른쪽 노란 말풍선에 배치되며, 다른 참가자들은 왼쪽 흰색 말풍선에 순서대로 자동 배치됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let profileImages = {};    // Name -> base64 string
+    let messages = [];         // Parsed chat list: { sender: string, text: string, isMe: boolean, timeStr: string }
+    let activeUserFilters = {}; // Name -> boolean (true: show, false: hide)
+    
+    // Set PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // Handle PDF File Upload and text extraction
+    async function handlePDFUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('loading-overlay').style.display = 'flex';
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          // Merge text items from PDF page
+          const pageText = textContent.items.map(item => item.str).join('\n');
+          fullText += pageText + "\n";
         }
 
-        function copyText() {
-            const name = document.querySelector('.item-name').innerText;
-            const desc = document.getElementById('current-desc').innerText;
-            const fullText = `${name}\n\n${desc}`;
-            
-            navigator.clipboard.writeText(fullText).then(() => {
-                alert("아이템 정보가 복사되었습니다.");
+        // Standardize newline structures from PDF extracted formats
+        let cleanedText = fullText
+          .replace(/\\n/g, '\n')
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .join('\n');
+
+        document.getElementById('raw-text').value = cleanedText;
+        parseAndRender();
+      } catch (error) {
+        alert("PDF 분석 중 오류가 발생했습니다. 올바른 PDF 파일인지 확인해 주세요.");
+        console.error(error);
+      } finally {
+        document.getElementById('loading-overlay').style.display = 'none';
+      }
+    }
+
+    // Dynamic parser
+    function parseAndRender() {
+      const rawText = document.getElementById('raw-text').value;
+      const myName = document.getElementById('my-name').value.trim();
+
+      if (!rawText.trim()) return;
+
+      // Clean lines
+      const rawLines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      messages = [];
+      let detectedUsers = new Set();
+      
+      let currentSender = '';
+      let currentText = '';
+      let currentTime = '오후 12:00'; // fallback time
+
+      // Regular Expressions for parsing
+      // Pattern for: Name Age, Role (e.g. "엘라 코르핀 32, 강력반")
+      const userHeaderPattern = /^([가-힣a-zA-Z\s]+)\s+(\d+.*)/;
+      const timePattern = /^(\d+분 전|\d+시간 전|어제|\d+일 전|방금)/;
+
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+
+        // Skip System/UI components of BAND
+        if (
+          line === "번역 보기" || 
+          line === "표정짓기" || 
+          line === "답글쓰기" || 
+          line.startsWith("좋아요") || 
+          line.startsWith("표정") ||
+          line === "댓글" ||
+          line === "공유하기"
+        ) {
+          continue;
+        }
+
+        // Check if line represents a user header
+        const headerMatch = line.match(userHeaderPattern);
+        if (headerMatch) {
+          // If we had a previous message pending, commit it first
+          if (currentSender && currentText) {
+            messages.push({
+              sender: currentSender,
+              text: currentText.trim(),
+              isMe: currentSender.includes(myName) || myName.includes(currentSender),
+              timeStr: currentTime
             });
+            currentText = '';
+          }
+          currentSender = headerMatch[1].trim();
+          detectedUsers.add(currentSender);
+          continue;
         }
 
-        async function saveImg(url, name) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = `${name}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (e) {
-                // CORS 문제 발생 시 새 창 열기
-                window.open(url, '_blank');
-            }
+        // Check if line represents time
+        if (timePattern.test(line) || line.includes("분 전") || line.includes("시간 전") || line.includes("일 전")) {
+          currentTime = line;
+          continue;
         }
-    </script>
+
+        // Otherwise, it is message body content
+        if (currentSender) {
+          currentText += (currentText ? " " : "") + line;
+        }
+      }
+
+      // Append last message
+      if (currentSender && currentText) {
+        messages.push({
+          sender: currentSender,
+          text: currentText.trim(),
+          isMe: currentSender.includes(myName) || myName.includes(currentSender),
+          timeStr: currentTime
+        });
+      }
+
+      // Initialize filter state for newly detected users if not already set
+      detectedUsers.forEach(user => {
+        if (activeUserFilters[user] === undefined) {
+          activeUserFilters[user] = true; // Default to shown
+        }
+      });
+
+      // Update User lists UI
+      renderProfileList(Array.from(detectedUsers), myName);
+      // Update Chat Room UI
+      renderChatRoom(myName);
+    }
+
+    // Render configuration fields with toggle switches
+    function renderProfileList(users, myName) {
+      const container = document.getElementById('profile-list');
+      container.innerHTML = '';
+
+      if (users.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: #888; font-size: 12px; padding: 10px;">참여자가 감지되지 않았습니다.</div>`;
+        return;
+      }
+
+      users.forEach(user => {
+        const isMe = user.includes(myName) || myName.includes(user);
+        const item = document.createElement('div');
+        item.className = 'profile-item';
+        
+        const avatarSrc = profileImages[user] || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23ccc"/></svg>';
+        const isChecked = activeUserFilters[user] !== false; // defaults to true
+
+        item.innerHTML = `
+          <div class="profile-item-left">
+            <!-- Filter checkbox -->
+            <input type="checkbox" class="user-toggle-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleUserFilter('${user}', this.checked)">
+            <img class="avatar-preview" id="preview-${user}" src="${avatarSrc}">
+            <div class="profile-item-info">
+              <div class="profile-name-area">
+                <span>${user}</span>
+                <span class="profile-badge ${isMe ? 'me' : 'other'}">${isMe ? '나' : '상대'}</span>
+              </div>
+            </div>
+          </div>
+          <label class="file-select-btn">
+            사진 선택
+            <input type="file" accept="image/*" style="display:none;" onchange="updateProfilePhoto(event, '${user}')">
+          </label>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Toggle user filter state
+    function toggleUserFilter(username, isChecked) {
+      activeUserFilters[username] = isChecked;
+      const myName = document.getElementById('my-name').value.trim();
+      renderChatRoom(myName);
+    }
+
+    // Cache photo uploads as base64
+    function updateProfilePhoto(event, username) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          profileImages[username] = e.target.result;
+          document.getElementById(`preview-${username}`).src = e.target.result;
+          const myName = document.getElementById('my-name').value.trim();
+          renderChatRoom(myName); // Re-render chat room with updated photo
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Draw the Mock Chat Room
+    function renderChatRoom(myName) {
+      const chatBox = document.getElementById('chat-box');
+      chatBox.innerHTML = '';
+
+      // Filter messages based on checkboxes
+      const filteredMessages = messages.filter(msg => activeUserFilters[msg.sender] !== false);
+
+      if (filteredMessages.length === 0) {
+        chatBox.innerHTML = `
+          <div class="empty-state">
+            <p>보여줄 대화 내용이 없습니다.<br>왼쪽 필터에서 대화를 표시할 사람을 선택해 주세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Update Header Title using only ACTIVE users
+      const activePartners = Array.from(new Set(
+        filteredMessages
+          .map(m => m.sender)
+          .filter(name => !name.includes(myName) && !myName.includes(name))
+      ));
+      
+      const titleArea = document.getElementById('chat-title');
+      if (activePartners.length > 0) {
+        titleArea.innerText = `대화방 (${activePartners.join(', ')})`;
+      } else {
+        titleArea.innerText = '나의 혼잣말 대화방';
+      }
+
+      filteredMessages.forEach(msg => {
+        const chatItem = document.createElement('div');
+        chatItem.className = `chat-item ${msg.isMe ? 'me' : 'other'}`;
+
+        const avatarSrc = profileImages[msg.sender] || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23ccc"/></svg>';
+
+        chatItem.innerHTML = `
+          <img class="chat-avatar" src="${avatarSrc}">
+          <div class="chat-content">
+            ${msg.isMe ? '' : `<span class="chat-sender-name">${msg.sender}</span>`}
+            <div class="chat-bubble-wrapper">
+              <div class="chat-bubble">${msg.text}</div>
+              <span class="chat-time">${msg.timeStr}</span>
+            </div>
+          </div>
+        `;
+        chatBox.appendChild(chatItem);
+      });
+
+      // Auto scroll to bottom
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Export preview-area as a PDF using html2pdf.js
+    function downloadChatPDF() {
+      const element = document.getElementById('capture-area');
+      const myName = document.getElementById('my-name').value.trim();
+      const filename = `${myName || 'band'}_chat_history.pdf`;
+
+      const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
 </body>
 </html>
