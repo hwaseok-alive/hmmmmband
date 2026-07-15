@@ -21,10 +21,13 @@
             <p>PDF 파일이나 캡처 이미지를 올리면 텍스트를 파싱하여 대화창으로 변환합니다.</p>
         </header>
 
-        <!-- 파일 업로드 영역 -->
+        <!-- 파일 업로드 및 취소 영역 -->
         <div class="upload-section">
-            <label for="pdf-upload" class="upload-btn">📁 파일 선택하기</label>
-            <input type="file" id="pdf-upload" accept=".pdf, .png, .jpg, .jpeg" style="display: none;">
+            <div class="btn-group">
+                <label for="pdf-upload" id="upload-label" class="upload-btn">📁 파일 선택하기</label>
+                <input type="file" id="pdf-upload" accept=".pdf, .png, .jpg, .jpeg" style="display: none;">
+                <button id="btn-cancel" class="cancel-btn" style="display: none;">❌ 분석 취소</button>
+            </div>
             <div id="file-name" class="file-name">선택된 파일 없음</div>
         </div>
 
