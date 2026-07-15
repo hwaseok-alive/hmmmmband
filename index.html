@@ -6,9 +6,9 @@
     <title>PDF 대화창 변환기</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js 라이브러리 (PDF를 이미지 파일로 변환하기 위함) -->
+    <!-- PDF.js 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <!-- Tesseract.js 라이브러리 (이미지 속 한글/영어 OCR 판독 엔진) -->
+    <!-- Tesseract.js (OCR 판독 엔진) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- 이미지(PNG) 저장 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,7 +18,7 @@
     <div class="app-container">
         <header class="app-header">
             <h1>💬 PDF 댓글/대화 변환기</h1>
-            <p>캡처된 PDF 파일의 이미지를 분석(OCR)하여 대화 상대를 자동으로 분류합니다.</p>
+            <p>PDF를 업로드하고 내 이름을 지정하면 자동으로 대화를 분류합니다.</p>
         </header>
 
         <!-- 파일 업로드 영역 -->
@@ -28,15 +28,19 @@
             <div id="file-name" class="file-name">선택된 파일 없음</div>
         </div>
 
-        <!-- 필터 및 저장 컨트롤 영역 -->
+        <!-- ⚙️ 개인화 및 필터 컨트롤 영역 (내 이름 입력창 추가) -->
         <div class="control-section">
+            <div class="input-wrapper">
+                <label for="my-name-input">내 이름: </label>
+                <input type="text" id="my-name-input" class="styled-input" value="콘스탄틴 하벨" placeholder="이름 입력...">
+            </div>
             <div class="dropdown-wrapper">
-                <label for="speaker-select">대화 상대 선택: </label>
+                <label for="speaker-select">상대방: </label>
                 <select id="speaker-select" class="styled-select">
                     <option value="all">전체 대화</option>
                 </select>
             </div>
-            <button id="btn-export" class="export-btn" disabled>💾 이미지로 저장</button>
+            <button id="btn-export" class="export-btn" disabled>💾 저장</button>
         </div>
 
         <!-- 대화창 렌더링 영역 -->
