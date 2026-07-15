@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>BAND 대화 백업기</title>
 
@@ -14,57 +18,406 @@
     <!-- OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-    <!-- PNG 저장 -->
+    <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <!-- PDF 저장 -->
+    <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 
 <body>
 
 <div class="app">
 
-    <!-- =========================
-            HEADER
-    ========================== -->
+<!-- =========================================================
+HEADER
+========================================================= -->
 
-    <header class="header">
+<header class="header">
 
-        <div>
-            <h1>💬 BAND 대화 백업기</h1>
-            <p>PDF · 이미지 → 대화 자동 복원</p>
-        </div>
+    <div>
 
-        <div class="header-buttons">
+        <h1>💬 BAND 대화 백업기</h1>
 
-            <button id="theme-toggle">
-                🌙
+        <p>PDF · 이미지 → 메신저 스타일 대화 자동 복원</p>
+
+    </div>
+
+    <div class="header-buttons">
+
+        <button id="theme-toggle">
+
+            🌙
+
+        </button>
+
+        <div class="save-dropdown">
+
+            <button id="save-button">
+
+                💾 저장 ▼
+
             </button>
 
-            <div class="save-dropdown">
+            <div
+                id="save-menu"
+                class="save-menu">
 
-                <button id="save-button">
-                    💾 저장 ▼
+                <button id="save-png">
+                    PNG 저장
                 </button>
 
-                <div id="save-menu" class="save-menu">
+                <button id="save-pdf">
+                    PDF 저장
+                </button>
 
-                    <button id="save-png">
-                        PNG 저장
-                    </button>
+                <button id="copy-image">
+                    이미지 복사
+                </button>
 
-                    <button id="save-pdf">
-                        PDF 저장
-                    </button>
+                <button id="copy-html">
+                    HTML 복사
+                </button>
 
-                    <button id="copy-image">
-                        이미지 복사
-                    </button>
+            </div>
 
-                    <button id="copy-html">
-                        HTML 복사
-                    </button>
+        </div>
+
+    </div>
+
+</header>
+
+<!-- =========================================================
+MAIN
+========================================================= -->
+
+<div class="main-layout">
+
+<!-- =========================================================
+SIDEBAR
+========================================================= -->
+
+<aside class="sidebar">
+
+<!-- 파일 -->
+
+<section class="panel">
+
+    <h3>📄 파일 업로드</h3>
+
+    <label
+        for="pdf-upload"
+        class="upload-button">
+
+        PDF / 이미지 선택
+
+    </label>
+
+    <input
+        id="pdf-upload"
+        type="file"
+        accept=".pdf,.png,.jpg,.jpeg"
+        hidden>
+
+    <button
+        id="cancel-btn"
+        class="danger-button">
+
+        분석 취소
+
+    </button>
+
+    <div id="file-name">
+
+        선택된 파일 없음
+
+    </div>
+
+</section>
+
+<!-- OCR -->
+
+<section class="panel">
+
+    <h3>📊 OCR 진행 상황</h3>
+
+    <div class="progress">
+
+        <div id="progress-bar"></div>
+
+    </div>
+
+    <div id="progress-text">
+
+        대기 중
+
+    </div>
+
+</section>
+
+<!-- 화자 -->
+
+<section class="panel">
+
+    <h3>👤 내 이름</h3>
+
+    <select id="my-speaker">
+
+        <option value="">
+
+            자동 감지
+
+        </option>
+
+    </select>
+
+    <h3 style="margin-top:18px;">
+
+        👥 상대 선택
+
+    </h3>
+
+    <select id="target-speaker">
+
+        <option value="all">
+
+            전체 대화
+
+        </option>
+
+    </select>
+
+</section>
+
+<!-- 프로필 -->
+
+<section class="panel">
+
+    <h3>🖼 프로필</h3>
+
+    <div id="profile-list">
+
+        <!--
+
+        JS가 자동 생성
+
+        <div class="profile-setting">
+
+            <div class="avatar-preview">
+
+                <img>
+
+            </div>
+
+            <div class="profile-info">
+
+                <label>
+
+                    콘스탄틴 하벨
+
+                </label>
+
+                <input
+                    type="file">
+
+            </div>
+
+        </div>
+
+        -->
+
+    </div>
+
+</section>
+
+<!-- 옵션 -->
+
+<section class="panel">
+
+    <h3>⚙ 표시 옵션</h3>
+
+    <label>
+
+        <input
+            id="show-profile"
+            type="checkbox"
+            checked>
+
+        프로필 표시
+
+    </label>
+
+    <label>
+
+        <input
+            id="show-name"
+            type="checkbox"
+            checked>
+
+        이름 표시
+
+    </label>
+
+    <label>
+
+        <input
+            id="show-time"
+            type="checkbox"
+            checked>
+
+        시간 표시
+
+    </label>
+
+    <label>
+
+        <input
+            id="show-system"
+            type="checkbox">
+
+        시스템 메시지 표시
+
+    </label>
+
+</section>
+
+<!-- 여기서 이어짐 -->
+    <!-- =========================================================
+VIEWER
+========================================================= -->
+
+</aside>
+
+<section class="viewer">
+
+    <div class="viewer-toolbar">
+
+        <div id="analysis-result">
+
+            PDF 또는 이미지를 업로드하면
+            자동으로 화자를 분석합니다.
+
+        </div>
+
+        <input
+            id="search-box"
+            type="text"
+            placeholder="대화 검색...">
+
+    </div>
+
+    <div id="chat-wrapper">
+
+        <div id="chat-container">
+
+            <div class="system-message">
+
+                PDF 또는 이미지를 업로드하세요.
+
+            </div>
+
+            <!--
+            ===================================================
+            아래는 디자인 미리보기용 예시
+            JS 실행 시 모두 삭제되고
+            OCR 결과로 자동 생성됩니다.
+            ===================================================
+            -->
+
+            <div class="chat-group other">
+
+                <div class="message-row">
+
+                    <div class="avatar">
+
+                        <img
+                            src="assets/default-avatar.png"
+                            alt="">
+
+                    </div>
+
+                    <div class="message-body">
+
+                        <div class="speaker-name">
+
+                            알레한드로 골리코프
+
+                        </div>
+
+                        <div class="message-stack">
+
+                            <div class="message-content">
+
+                                @콘스탄틴
+
+                                오늘 조사 결과가 나왔습니다.
+
+                            </div>
+
+                            <div class="message-content">
+
+                                보고서를 확인해 주세요.
+
+                            </div>
+
+                        </div>
+
+                        <div class="message-time">
+
+                            08:35
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="chat-group my">
+
+                <div class="message-row">
+
+                    <div class="avatar">
+
+                        <img
+                            src="assets/default-avatar.png"
+                            alt="">
+
+                    </div>
+
+                    <div class="message-body">
+
+                        <div class="speaker-name">
+
+                            콘스탄틴 하벨
+
+                        </div>
+
+                        <div class="message-stack">
+
+                            <div class="message-content">
+
+                                확인했습니다.
+
+                            </div>
+
+                            <div class="message-content">
+
+                                계속 조사하겠습니다.
+
+                            </div>
+
+                        </div>
+
+                        <div class="message-time">
+
+                            08:36
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -72,238 +425,17 @@
 
         </div>
 
-    </header>
+    </div>
 
-    <!-- =========================
-            MAIN
-    ========================== -->
+</section>
 
-    <main class="main-layout">
-
-        <!-- =====================
-              LEFT PANEL
-        ====================== -->
-
-        <aside class="sidebar">
-
-            <!-- 파일 -->
-
-            <section class="panel">
-
-                <h3>📄 파일</h3>
-
-                <label class="upload-button" for="pdf-upload">
-                    파일 선택
-                </label>
-
-                <input
-                    type="file"
-                    id="pdf-upload"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    hidden>
-
-                <button
-                    id="cancel-btn"
-                    class="danger-button">
-                    분석 취소
-                </button>
-
-                <div id="file-name">
-
-                    선택된 파일 없음
-
-                </div>
-
-            </section>
-
-            <!-- 화자 -->
-
-            <section class="panel">
-
-                <h3>👤 내 이름</h3>
-
-                <select id="my-speaker">
-
-                    <option>
-                        자동 감지
-                    </option>
-
-                </select>
-
-                <h3>👥 상대</h3>
-
-                <select id="target-speaker">
-
-                    <option>
-                        전체 대화
-                    </option>
-
-                </select>
-
-            </section>
-
-            <!-- 프로필 -->
-
-            <section class="panel">
-
-                <h3>🖼 프로필 사진</h3>
-
-                <div class="profile-setting">
-
-                    <label>
-
-                        내 사진
-
-                    </label>
-
-                    <input
-                        type="file"
-                        id="my-avatar"
-                        accept="image/*">
-
-                </div>
-
-                <div class="profile-setting">
-
-                    <label>
-
-                        상대 사진
-
-                    </label>
-
-                    <input
-                        type="file"
-                        id="target-avatar"
-                        accept="image/*">
-
-                </div>
-
-            </section>
-
-            <!-- 옵션 -->
-
-            <section class="panel">
-
-                <h3>⚙ 표시 옵션</h3>
-
-                <label>
-
-                    <input
-                        type="checkbox"
-                        id="show-name"
-                        checked>
-
-                    이름 표시
-
-                </label>
-
-                <label>
-
-                    <input
-                        type="checkbox"
-                        id="show-profile"
-                        checked>
-
-                    프로필 표시
-
-                </label>
-
-                <label>
-
-                    <input
-                        type="checkbox"
-                        id="show-time"
-                        checked>
-
-                    시간 표시
-
-                </label>
-
-                <label>
-
-                    <input
-                        type="checkbox"
-                        id="show-system">
-
-                    시스템 메시지
-
-                </label>
-
-            </section>
-
-            <!-- OCR -->
-
-            <section class="panel">
-
-                <h3>📊 OCR 진행</h3>
-
-                <div class="progress">
-
-                    <div
-                        id="progress-bar">
-                    </div>
-
-                </div>
-
-                <div
-                    id="progress-text">
-
-                    대기 중
-
-                </div>
-
-            </section>
-
-        </aside>
-
-        <!-- =====================
-            RIGHT
-        ====================== -->
-
-        <section class="viewer">
-
-            <div class="viewer-toolbar">
-
-                <div id="analysis-result">
-
-                    PDF를 업로드하면
-                    화자가 자동 분석됩니다.
-
-                </div>
-
-                <input
-                    id="search-box"
-                    type="text"
-                    placeholder="대화 검색">
-
-            </div>
-
-            <!-- 대화 -->
-
-            <div
-                id="chat-wrapper">
-
-                <div
-                    id="chat-container">
-
-                    <div class="system-message">
-
-                        PDF 또는 이미지를
-                        업로드하세요.
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
+</div>
 
 </div>
 
 <script src="script.js"></script>
 
 </body>
+
 </html>
+    
