@@ -1,0 +1,126 @@
+/* 기본 초기화 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 90vh;
+}
+
+.app-header {
+    background-color: #4a5568;
+    color: white;
+    padding: 15px 20px;
+    text-align: center;
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.app-header p {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* 파일 업로드 스타일 */
+.upload-section {
+    padding: 15px 20px;
+    background-color: #edf2f7;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.upload-btn {
+    background-color: #3182ce;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.upload-btn:hover {
+    background-color: #2b6cb0;
+}
+
+.file-name {
+    font-size: 0.85rem;
+    color: #4a5568;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 대화창 내부 스타일 */
+.chat-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    background-color: #b2c7da; /* 카카오톡 느낌의 기본 배경색 */
+    padding: 20px;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 말풍선 공통 스타일 */
+.message-item {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+}
+
+.speaker-name {
+    font-size: 0.8rem;
+    color: #4a5568;
+    margin-bottom: 4px;
+    margin-left: 5px;
+}
+
+.message-content {
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    word-break: break-all;
+}
+
+/* 시스템 메시지 스타일 */
+.system-message {
+    align-self: center;
+    background-color: rgba(0, 0, 0, 0.15);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    text-align: center;
+}
