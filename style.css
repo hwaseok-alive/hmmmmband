@@ -51,6 +51,11 @@ body {
     gap: 15px;
 }
 
+.btn-group {
+    display: flex;
+    align-items: center;
+}
+
 .upload-btn {
     background-color: #3182ce;
     color: white;
@@ -62,6 +67,23 @@ body {
     white-space: nowrap;
 }
 
+/* 취소 버튼 스타일 추가 */
+.cancel-btn {
+    background-color: #e53e3e;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.cancel-btn:hover {
+    background-color: #c53030;
+}
+
 .file-name {
     font-size: 0.85rem;
     color: #4a5568;
@@ -70,7 +92,6 @@ body {
     white-space: nowrap;
 }
 
-/* 컨트롤 영역 배치 보강 */
 .control-section {
     display: flex;
     justify-content: space-between;
@@ -79,7 +100,7 @@ body {
     background: #fff;
     border-bottom: 1px solid #edf2f7;
     gap: 10px;
-    flex-wrap: wrap; /* 화면이 좁아져도 안 깨지게 방어 */
+    flex-wrap: wrap;
 }
 
 .input-wrapper, .dropdown-wrapper {
@@ -126,7 +147,6 @@ body {
     cursor: not-allowed;
 }
 
-/* 대화 래퍼에 최저 높이를 주어 에러 메시지 팝업 시 깨짐 방지 */
 .chat-wrapper {
     flex: 1;
     overflow-y: auto;
