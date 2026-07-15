@@ -124,85 +124,102 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
-// 밴드 댓글 UI 맞춤형 파싱 엔진
+// ⚠️ [새로운 매커니즘] 정규식을 활용한 정밀 분할 및 매칭 엔진
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
     
     const currentMyName = myNameInput.value.trim();
-    const lines = text.split('\n');
     
-    let currentSpeaker = "";
-    let currentMessageAccumulator = [];
+    // 타겟팅할 진짜 화자 목록 구성
+    const targetSpeakers = ['알레한드로 골리코프', '토르벤 파트로소프'];
+    if (currentMyName) {
+        targetSpeakers.push(currentMyName);
+    }
 
-    lines.forEach(line => {
-        let trimmed = line.trim();
-        if (!trimmed) return;
+    // 1. 줄바꿈 노이즈 사전 정제
+    let cleanLines = text.split('\n')
+        .map(line => line.trim())
+        .filter(line => {
+            if (!line) return false;
+            // 밴드 UI 기능성 노이즈 완전 배제
+            if (line.includes("표정짓기") || line.includes("답글쓰기") || line.includes("번역 보기") || line.includes("좋아요")) return false;
+            if (/^\d+\s*(시간|분|일)\s*전/.test(line)) return false; // "3시간 전" 같은 시간 라인 삭제
+            return true;
+        });
 
-        // 시스템 쓰레기 라인 1차 컷
-        if (trimmed.includes("표정짓기") || trimmed.includes("답글쓰기") || trimmed.includes("번역 보기") || trimmed.includes("좋아요")) {
-            return;
-        }
-        // 시간 정보 라인 (예: 3시간 전, 11분 전) 스킵
-        if (/^\d+\s*(시간|분|일)\s*전/.test(trimmed)) {
-            return;
-        }
+    // 2. 단일 대화 묶음을 찾기 위한 탐색 루프
+    let tempSpeaker = "";
+    let tempBuffer = [];
 
-        let isSpeakerLine = false;
-        let matchedSpeaker = "";
+    for (let i = 0; i < cleanLines.length; i++) {
+        let line = cleanLines[i];
+        let isRealSpeakerHeader = false;
+        let matchedName = "";
 
-        // ⚠️ 핵심: 골뱅이(@)가 맨 앞에 붙은 라인은 '진짜 이름 라인'이 아니라 본문(멘션)이므로 화자 전환을 안 합니다!
-        if (!trimmed.startsWith('@')) {
-            if (trimmed.includes('알레한드로') || trimmed.includes('골리코프')) {
-                isSpeakerLine = true;
-                matchedSpeaker = '알레한드로 골리코프';
-            } else if (trimmed.includes('토르벤') || trimmed.includes('파트로소프')) {
-                isSpeakerLine = true;
-                matchedSpeaker = '토르벤 파트로소프';
-            } else if (currentMyName && trimmed.includes(currentMyName)) {
-                isSpeakerLine = true;
-                matchedSpeaker = currentMyName;
-            }
-        }
-
-        // 새로운 화자가 확정되었다면
-        if (isSpeakerLine) {
-            // 기존 누적된 대화 내용이 있다면 먼저 말풍선으로 묶어서 저장
-            if (currentSpeaker && currentMessageAccumulator.length > 0) {
-                let bodyText = currentMessageAccumulator.join(' ').trim();
-                if (bodyText.length > 0) {
-                    saveMessage(currentSpeaker, bodyText);
+        // 진짜 화자 헤더라인인지 엄격히 판정하는 필터
+        // 본문 멘션(@)이 포함되지 않은 줄 중에서, 타겟 이름과 매치되는지 확인합니다.
+        if (!line.includes('@')) {
+            for (let name of targetSpeakers) {
+                // 이름이 완전히 일치하거나, "이름 + 나이/직급(예: 콘스탄틴 하벨 50, 형사과)" 패턴일 때
+                if (line === name || line.startsWith(name) || (name === '알레한드로 골리코프' && (line.includes('알레한드로') || line.includes('골리코프')))) {
+                    isRealSpeakerHeader = true;
+                    matchedName = name;
+                    break;
                 }
             }
-            // 화자 교체
-            currentSpeaker = matchedSpeaker;
-            if (currentSpeaker !== currentMyName) {
-                detectedSpeakers.add(currentSpeaker);
+        }
+
+        if (isRealSpeakerHeader) {
+            // 이전에 쌓인 대화가 있으면 말풍선으로 내보내기
+            if (tempSpeaker && tempBuffer.length > 0) {
+                pushCleanedMessage(tempSpeaker, tempBuffer);
             }
-            currentMessageAccumulator = [];
+            // 상태를 새로운 화자로 변경
+            tempSpeaker = matchedName;
+            if (tempSpeaker !== currentMyName) {
+                detectedSpeakers.add(tempSpeaker);
+            }
+            tempBuffer = [];
         } else {
-            // 일반 본문 라인인 경우
-            if (currentSpeaker) {
-                // OCR 찌꺼기 특수문자들 가볍게 청소
-                let cleanLine = trimmed.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
-                if (cleanLine) {
-                    currentMessageAccumulator.push(cleanLine);
-                }
+            // 본문 내용 버퍼에 계속 추가
+            if (tempSpeaker) {
+                tempBuffer.push(line);
             }
         }
-    });
+    }
 
-    // 마지막 대화 덩어리 flush
-    if (currentSpeaker && currentMessageAccumulator.length > 0) {
-        let bodyText = currentMessageAccumulator.join(' ').trim();
-        if (bodyText.length > 0) {
-            saveMessage(currentSpeaker, bodyText);
-        }
+    // 마지막 남은 잔여 대화 처리
+    if (tempSpeaker && tempBuffer.length > 0) {
+        pushCleanedMessage(tempSpeaker, tempBuffer);
     }
 }
 
-function saveMessage(speaker, text) {
-    allMessages.push({ speaker: speaker, message: text });
+// 본문 텍스트 안에 섞여서 들어간 가짜 프로필 텍스트 및 중복 멘션 최종 클리닝 함수
+function pushCleanedMessage(speaker, linesArray) {
+    const currentMyName = myNameInput.value.trim();
+    
+    // 각 본문 라인들 중 혹시 섞여 들어간 프로필 찌꺼기나 빈 문자열 2차 정제
+    let filteredLines = linesArray.map(l => {
+        let temp = l.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
+        // 화자 이름이 단독으로 본문 줄에 들어간 노이즈 제거
+        if (temp === "알레한드로 골리코프" || temp === "토르벤 파트로소프" || (currentMyName && temp === currentMyName)) {
+            return "";
+        }
+        return temp;
+    }).filter(l => l.length > 0);
+
+    if (filteredLines.length > 0) {
+        let finalBody = filteredLines.join(' ');
+        
+        // 멘션 기호 가독성 포맷 정리 (중복 공백 제거)
+        finalBody = finalBody.replace(/\s+/g, ' ').trim();
+        
+        allMessages.push({
+            speaker: speaker,
+            message: finalBody
+        });
+    }
 }
 
 function updateSpeakerDropdown() {
@@ -233,7 +250,7 @@ function renderChat() {
         
         let displayMsg = msg.message;
         
-        // 본문 안의 멘션 기호(@알레한드로 등) 파란색 하이라이트 처리
+        // 본문 안의 @멘션 기호 파란색 하이라이팅
         displayMsg = displayMsg.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
 
         const messageElement = document.createElement('div');
