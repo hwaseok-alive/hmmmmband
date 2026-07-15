@@ -1,189 +1,35 @@
-/* 기본 레이아웃은 유지하며 드롭다운 및 컨트롤 영역 스타일 추가 */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-    background-color: #f0f2f5;
-    color: #333;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-}
-
-.app-container {
-    width: 100%;
-    max-width: 600px;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 90vh;
-}
-
-.app-header {
-    background-color: #4a5568;
-    color: white;
-    padding: 15px 20px;
-    text-align: center;
-}
-
-.app-header h1 {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-}
-
-.app-header p {
-    font-size: 0.85rem;
-    opacity: 0.8;
-}
-
-.upload-section {
-    padding: 15px 20px;
-    background-color: #edf2f7;
-    border-bottom: 1px solid #e2e8f0;
+/* 기존 스타일에 입력창 디자인 추가 */
+.input-wrapper {
     display: flex;
     align-items: center;
-    gap: 15px;
-}
-
-.upload-btn {
-    background-color: #3182ce;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: bold;
-}
-
-.file-name {
+    gap: 6px;
     font-size: 0.85rem;
+    font-weight: bold;
     color: #4a5568;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-/* 컨트롤 영역 (드롭다운 정렬) */
+.styled-input {
+    width: 100px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #2d3748;
+    outline: none;
+}
+
+.styled-input:focus {
+    border-color: #3182ce;
+    background-color: #fff;
+}
+
+/* 컨트롤 섹션 요소들이 많아졌으므로 촘촘하게 배치 조정 */
 .control-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
+    padding: 10px 15px;
     background: #fff;
     border-bottom: 1px solid #edf2f7;
-}
-
-.dropdown-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: #4a5568;
-}
-
-.styled-select {
-    padding: 6px 12px;
-    border: 1px solid #cbd5e0;
-    border-radius: 6px;
-    background-color: #f7fafc;
-    font-size: 0.9rem;
-    color: #2d3748;
-    cursor: pointer;
-    outline: none;
-}
-
-.styled-select:focus {
-    border-color: #3182ce;
-}
-
-.export-btn {
-    padding: 8px 16px;
-    background: #38a169;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.85rem;
-}
-
-.export-btn:disabled {
-    background: #cbd5e0;
-    cursor: not-allowed;
-}
-
-.chat-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    background-color: #b2c7da;
-    padding: 20px;
-}
-
-.chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-/* 말풍선 공통 및 정렬 */
-.message-item {
-    display: flex;
-    flex-direction: column;
-    max-width: 80%;
-}
-
-.message-item.other {
-    align-self: flex-start;
-}
-
-.message-item.other .message-content {
-    background: #ffffff;
-    border-radius: 0px 12px 12px 12px;
-}
-
-.message-item.my {
-    align-self: flex-end;
-}
-
-.message-item.my .speaker-name {
-    align-self: flex-end;
-    margin-right: 5px;
-}
-
-.message-item.my .message-content {
-    background: #fee500;
-    border-radius: 12px 0px 12px 12px;
-}
-
-.speaker-name {
-    font-size: 0.8rem;
-    color: #4a5568;
-    margin-bottom: 4px;
-    margin-left: 5px;
-}
-
-.message-content {
-    padding: 10px 14px;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-    word-break: break-all;
-}
-
-.system-message {
-    align-self: center;
-    background-color: rgba(0, 0, 0, 0.2);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    text-align: center;
+    gap: 10px;
 }
