@@ -306,7 +306,15 @@ body{
 
     align-items:flex-end;
 
-    gap:12px;
+    gap:8px;
+
+    width:100%;
+
+}
+
+.chat-group.other .message-row{
+
+    justify-content:flex-start;
 
 }
 
@@ -314,8 +322,9 @@ body{
 
     flex-direction:row-reverse;
 
-}
+    justify-content:flex-end;
 
+}
 /*======================
     BODY
 ======================*/
@@ -921,7 +930,6 @@ select:focus{
 /*======================
     대화 그룹
 ======================*/
-
 .chat-group{
 
     width:100%;
@@ -936,14 +944,17 @@ select:focus{
 
     justify-content:flex-start;
 
+    padding-right:80px;
+
 }
 
 .chat-group.my{
 
     justify-content:flex-end;
 
-}
+    padding-left:80px;
 
+}
 
 /*======================
     행
@@ -974,9 +985,9 @@ select:focus{
 
 .avatar{
 
-    width:52px;
+    width:48px;
 
-    height:52px;
+    height:48px;
 
     border-radius:50%;
 
@@ -1011,6 +1022,14 @@ select:focus{
 
     flex-direction:column;
 
+    align-items:flex-start;
+
+}
+
+.chat-group.my .message-body{
+
+    align-items:flex-end;
+
 }
 
 
@@ -1020,13 +1039,17 @@ select:focus{
 
 .speaker-name{
 
+    width:100%;
+
     font-size:.82rem;
 
     color:#64748b;
 
-    margin-bottom:8px;
+    margin-bottom:6px;
 
     font-weight:700;
+
+    text-align:left;
 
 }
 
@@ -1034,6 +1057,7 @@ select:focus{
 
     text-align:right;
 
+}
 }
 
 
@@ -1103,6 +1127,8 @@ select:focus{
 
 .chat-group.other .message-content{
 
+    align-self:flex-start;
+
     background:white;
 
     color:#222;
@@ -1117,6 +1143,8 @@ select:focus{
 ======================*/
 
 .chat-group.my .message-content{
+
+    align-self:flex-end;
 
     background:#fee500;
 
@@ -1137,13 +1165,13 @@ select:focus{
 
     position:absolute;
 
-    left:-7px;
+    left:-6px;
 
     top:14px;
 
-    width:14px;
+    width:12px;
 
-    height:14px;
+    height:12px;
 
     background:white;
 
@@ -1157,13 +1185,13 @@ select:focus{
 
     position:absolute;
 
-    right:-7px;
+    right:-6px;
 
     top:14px;
 
-    width:14px;
+    width:12px;
 
-    height:14px;
+    height:12px;
 
     background:#fee500;
 
@@ -1176,20 +1204,21 @@ select:focus{
     연속 말풍선
 ======================*/
 
-.message-stack .message-content:not(:first-child){
+.message-stack .message-content{
 
-    border-radius:18px;
+    margin:0;
 
 }
 
+.message-stack .message-content + .message-content{
 
-/*======================
-    마지막 말풍선
-======================*/
+    margin-top:4px;
+
+}
 
 .message-stack .message-content:last-child{
 
-    margin-bottom:2px;
+    margin-bottom:0;
 
 }
 
@@ -1200,7 +1229,7 @@ select:focus{
 
 .message-time{
 
-    margin-top:5px;
+    margin-top:6px;
 
     font-size:.72rem;
 
@@ -1208,12 +1237,21 @@ select:focus{
 
 }
 
+.chat-group.other .message-time{
+
+    align-self:flex-start;
+
+    text-align:left;
+
+}
+
 .chat-group.my .message-time{
+
+    align-self:flex-end;
 
     text-align:right;
 
 }
-
 
 /*======================
     멘션
@@ -1236,18 +1274,33 @@ select:focus{
 
     margin-top:8px;
 
+    width:fit-content;
+
+    max-width:70%;
+
+}
+
+.chat-group.my .message-image{
+
+    align-self:flex-end;
+
+}
+
+.chat-group.other .message-image{
+
+    align-self:flex-start;
+
 }
 
 .message-image img{
 
     display:block;
 
-    width:100%;
+    max-width:100%;
 
     border-radius:12px;
 
 }
-
 
 /*======================
     수정 가능
