@@ -1047,7 +1047,15 @@ select:focus{
 
     flex-direction:column;
 
+    align-items:flex-start;
+
     gap:6px;
+
+}
+
+.chat-group.my .message-stack{
+
+    align-items:flex-end;
 
 }
 
@@ -1060,7 +1068,13 @@ select:focus{
 
     position:relative;
 
-    max-width:640px;
+    display:inline-block;
+
+    width:fit-content;
+
+    min-width:70px;
+
+    max-width:70%;
 
     padding:13px 17px;
 
@@ -1073,6 +1087,8 @@ select:focus{
     white-space:pre-wrap;
 
     word-break:break-word;
+
+    text-align:left;
 
     box-shadow:
 
