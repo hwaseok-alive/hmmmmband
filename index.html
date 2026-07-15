@@ -3,57 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF/이미지 대화창 변환기</title>
+
+    <title>BAND 대화 백업기</title>
+
     <link rel="stylesheet" href="style.css">
-    
-    <!-- PDF.js 라이브러리 (버전 3.4.120 통일) -->
+
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <!-- Tesseract.js (OCR 엔진) -->
+
+    <!-- OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- 이미지(PNG) 저장 라이브러리 -->
+
+    <!-- PNG 저장 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- PDF 저장 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
+
 <body>
 
-    <div class="app-container">
-        <header class="app-header">
-            <h1>💬 PDF & 이미지 대화 변환기</h1>
-            <p>PDF 파일이나 캡처 이미지를 올리면 텍스트를 파싱하여 대화창으로 변환합니다.</p>
-        </header>
+<div class="app">
 
-        <!-- 파일 업로드 및 취소 영역 -->
-        <div class="upload-section">
-            <div class="btn-group">
-                <label for="pdf-upload" id="upload-label" class="upload-btn">📁 파일 선택하기</label>
-                <input type="file" id="pdf-upload" accept=".pdf, .png, .jpg, .jpeg" style="display: none;">
-                <button id="btn-cancel" class="cancel-btn" style="display: none;">❌ 분석 취소</button>
-            </div>
-            <div id="file-name" class="file-name">선택된 파일 없음</div>
+    <!-- =========================
+            HEADER
+    ========================== -->
+
+    <header class="header">
+
+        <div>
+            <h1>💬 BAND 대화 백업기</h1>
+            <p>PDF · 이미지 → 대화 자동 복원</p>
         </div>
 
-        <!-- 필터 및 이름 입력 컨트롤 영역 -->
-        <div class="control-section">
-            <div class="input-wrapper">
-                <label for="my-name-input">내 이름: </label>
-                <input type="text" id="my-name-input" class="styled-input" value="콘스탄틴 하벨" placeholder="이름 입력...">
+        <div class="header-buttons">
+
+            <button id="theme-toggle">
+                🌙
+            </button>
+
+            <div class="save-dropdown">
+
+                <button id="save-button">
+                    💾 저장 ▼
+                </button>
+
+                <div id="save-menu" class="save-menu">
+
+                    <button id="save-png">
+                        PNG 저장
+                    </button>
+
+                    <button id="save-pdf">
+                        PDF 저장
+                    </button>
+
+                    <button id="copy-image">
+                        이미지 복사
+                    </button>
+
+                    <button id="copy-html">
+                        HTML 복사
+                    </button>
+
+                </div>
+
             </div>
-            <div class="dropdown-wrapper">
-                <label for="speaker-select">상대방: </label>
-                <select id="speaker-select" class="styled-select">
-                    <option value="all">전체 대화</option>
+
+        </div>
+
+    </header>
+
+    <!-- =========================
+            MAIN
+    ========================== -->
+
+    <main class="main-layout">
+
+        <!-- =====================
+              LEFT PANEL
+        ====================== -->
+
+        <aside class="sidebar">
+
+            <!-- 파일 -->
+
+            <section class="panel">
+
+                <h3>📄 파일</h3>
+
+                <label class="upload-button" for="pdf-upload">
+                    파일 선택
+                </label>
+
+                <input
+                    type="file"
+                    id="pdf-upload"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    hidden>
+
+                <button
+                    id="cancel-btn"
+                    class="danger-button">
+                    분석 취소
+                </button>
+
+                <div id="file-name">
+
+                    선택된 파일 없음
+
+                </div>
+
+            </section>
+
+            <!-- 화자 -->
+
+            <section class="panel">
+
+                <h3>👤 내 이름</h3>
+
+                <select id="my-speaker">
+
+                    <option>
+                        자동 감지
+                    </option>
+
                 </select>
-            </div>
-            <button id="btn-export" class="export-btn" disabled>💾 이미지 저장</button>
-        </div>
 
-        <!-- 대화창 렌더링 영역 -->
-        <div class="chat-wrapper">
-            <div id="chat-container" class="chat-container">
-                <div class="system-message">PDF 또는 이미지 파일을 업로드하시면 대화창이 생성됩니다.</div>
-            </div>
-        </div>
-    </div>
+                <h3>👥 상대</h3>
 
-    <script src="script.js"></script>
+                <select id="target-speaker">
+
+                    <option>
+                        전체 대화
+                    </option>
+
+                </select>
+
+            </section>
+
+            <!-- 프로필 -->
+
+            <section class="panel">
+
+                <h3>🖼 프로필 사진</h3>
+
+                <div class="profile-setting">
+
+                    <label>
+
+                        내 사진
+
+                    </label>
+
+                    <input
+                        type="file"
+                        id="my-avatar"
+                        accept="image/*">
+
+                </div>
+
+                <div class="profile-setting">
+
+                    <label>
+
+                        상대 사진
+
+                    </label>
+
+                    <input
+                        type="file"
+                        id="target-avatar"
+                        accept="image/*">
+
+                </div>
+
+            </section>
+
+            <!-- 옵션 -->
+
+            <section class="panel">
+
+                <h3>⚙ 표시 옵션</h3>
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        id="show-name"
+                        checked>
+
+                    이름 표시
+
+                </label>
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        id="show-profile"
+                        checked>
+
+                    프로필 표시
+
+                </label>
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        id="show-time"
+                        checked>
+
+                    시간 표시
+
+                </label>
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        id="show-system">
+
+                    시스템 메시지
+
+                </label>
+
+            </section>
+
+            <!-- OCR -->
+
+            <section class="panel">
+
+                <h3>📊 OCR 진행</h3>
+
+                <div class="progress">
+
+                    <div
+                        id="progress-bar">
+                    </div>
+
+                </div>
+
+                <div
+                    id="progress-text">
+
+                    대기 중
+
+                </div>
+
+            </section>
+
+        </aside>
+
+        <!-- =====================
+            RIGHT
+        ====================== -->
+
+        <section class="viewer">
+
+            <div class="viewer-toolbar">
+
+                <div id="analysis-result">
+
+                    PDF를 업로드하면
+                    화자가 자동 분석됩니다.
+
+                </div>
+
+                <input
+                    id="search-box"
+                    type="text"
+                    placeholder="대화 검색">
+
+            </div>
+
+            <!-- 대화 -->
+
+            <div
+                id="chat-wrapper">
+
+                <div
+                    id="chat-container">
+
+                    <div class="system-message">
+
+                        PDF 또는 이미지를
+                        업로드하세요.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+
 </body>
 </html>
