@@ -1,4 +1,4 @@
-/* 기본 초기화 */
+/* 기존 스타일에 필터 및 나/상대 정렬 추가 */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -43,7 +43,6 @@ body {
     opacity: 0.8;
 }
 
-/* 파일 업로드 스타일 */
 .upload-section {
     padding: 15px 20px;
     background-color: #edf2f7;
@@ -61,26 +60,63 @@ body {
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: bold;
-    transition: background 0.2s;
-}
-
-.upload-btn:hover {
-    background-color: #2b6cb0;
 }
 
 .file-name {
     font-size: 0.85rem;
     color: #4a5568;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-/* 대화창 내부 스타일 */
+/* 컨트롤 영역 (필터 및 저장) */
+.control-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: #fff;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.filter-btn.active {
+    background: #3182ce;
+    color: white;
+    border-color: #3182ce;
+}
+
+.export-btn {
+    padding: 6px 12px;
+    background: #38a169;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.export-btn:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+}
+
 .chat-wrapper {
     flex: 1;
     overflow-y: auto;
-    background-color: #b2c7da; /* 카카오톡 느낌의 기본 배경색 */
+    background-color: #b2c7da;
     padding: 20px;
 }
 
@@ -90,11 +126,36 @@ body {
     gap: 15px;
 }
 
-/* 말풍선 공통 스타일 */
+/* 💬 말풍선 정렬 구분 */
 .message-item {
     display: flex;
     flex-direction: column;
     max-width: 80%;
+}
+
+/* 상대방 메시지 (좌측 정렬, 흰색 바탕) */
+.message-item.other {
+    align-self: flex-start;
+}
+
+.message-item.other .message-content {
+    background: #ffffff;
+    border-radius: 0px 12px 12px 12px;
+}
+
+/* 나(콘스탄틴 하벨) 메시지 (우측 정렬, 카카오톡 노란색 바탕) */
+.message-item.my {
+    align-self: flex-end;
+}
+
+.message-item.my .speaker-name {
+    align-self: flex-end;
+    margin-right: 5px;
+}
+
+.message-item.my .message-content {
+    background: #fee500;
+    border-radius: 12px 0px 12px 12px;
 }
 
 .speaker-name {
@@ -105,19 +166,16 @@ body {
 }
 
 .message-content {
-    background: #ffffff;
     padding: 10px 14px;
-    border-radius: 10px;
     font-size: 0.95rem;
     line-height: 1.4;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     word-break: break-all;
 }
 
-/* 시스템 메시지 스타일 */
 .system-message {
     align-self: center;
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(0, 0, 0, 0.2);
     color: white;
     padding: 6px 12px;
     border-radius: 15px;
