@@ -258,9 +258,11 @@ body{
 
 #chat-container{
 
-    max-width:950px;
+    width:100%;
 
-    margin:auto;
+    max-width:860px;
+
+    margin:0 auto;
 
     display:flex;
 
