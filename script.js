@@ -140,7 +140,7 @@ function processTextAndRender() {
     parseMessages(rawExtractedText);
     
     if (allMessages.length === 0) {
-        showError("대화 내용을 추출하지 못했습니다. 이름 인식 조건을 확인해 주세요.");
+        showError("대화 내용을 추출하지 못했습니다. 이름 입력란을 확인해 주세요.");
         return;
     }
 
@@ -149,119 +149,96 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
-// 완전히 새로 뜯어고친 파싱 엔진 (외계어 차단 및 이름 정밀 검증)
+// [핵심] 줄바꿈에 영향을 받지 않는 타겟형 블록 파싱 매커니즘
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
     
     const currentMyName = myNameInput.value.trim();
-    const lines = text.split('\n');
+    
+    // 1. 확실한 고정 화자 키워드 정의
+    const targetSpeakers = ['알레한드로 골리코프', '토르벤 파트로소프'];
+    if (currentMyName) {
+        targetSpeakers.push(currentMyName);
+    }
+
+    // 2. 텍스트 전체에서 불필요한 외계어 기호 및 밴드 UI 요소 사전 청소
+    let cleanedText = text
+        .replace(/[~`^\\_+=[\]{}|;<>]/g, "") 
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => {
+            // UI 부속어 및 완전한 쓰레기 라인 단칼에 컷
+            if (!line || line === "번역 보기" || line === "답글쓰기" || line === "글쓰기" || line === "공유하기") return false;
+            if (/^[0-9\s.\-:/]+$/.test(line)) return false; // 날짜/시간 스킵
+            if (line.length <= 1 && !/[가-힣a-zA-Z]/.test(line)) return false; 
+            return true;
+        })
+        .join('\n');
+
+    // 3. 줄바꿈을 기준으로 배열화하여 화자 탐색 추적
+    const lines = cleanedText.split('\n');
+    
     let currentSpeaker = "";
     let currentMessageAccumulator = [];
 
-    // 대화방 내에 유입되면 안 되는 명백한 특수문자/외계어 패턴
-    const garbagePattern = /^[\s\d`~!@#$%^&*()_+=\-[\]\\|{};:'",.<>/?·•¥^/\\—]+$/;
-    
-    // 절대 이름이 될 수 없는 밴드 UI 단어 및 본문 파편용 블랙리스트
-    const invalidNameTokens = ["번역", "답글", "글쓰기", "시간", "보기", "표정", "전체", "이미지", "저장", "선택", "등록", "댓글", "좋아요"];
-    const blacklistSuffixes = ["은", "는", "이", "가", "을", "를", "의", "에서", "합니다", "입니다", "있다", "없다", "요", "과", "와", "해", "해라", "한다"];
-
     lines.forEach(line => {
-        let trimmed = line.trim();
-        if (!trimmed) return;
+        let isSpeakerLine = false;
+        let matchedSpeaker = "";
 
-        // 1. OCR 쓰레기 문자열 전처리 필터링
-        if (garbagePattern.test(trimmed) || trimmed.length <= 1) {
-            return; 
+        // 오타 및 부분 일치 강제 보정 매칭
+        if (line.includes('알레한드로') || line.includes('골리코프') || line.includes('알레한') || line.includes('열레한')) {
+            isSpeakerLine = true;
+            matchedSpeaker = '알레한드로 골리코프';
+        } else if (line.includes('토르벤') || line.includes('파트로소프') || line.includes('토르밴')) {
+            isSpeakerLine = true;
+            matchedSpeaker = '토르벤 파트로소프';
+        } else if (currentMyName && (line === currentMyName || line.includes(currentMyName))) {
+            isSpeakerLine = true;
+            matchedSpeaker = currentMyName;
         }
 
-        // 2. 이름 후보군 추출 및 엄격한 검증
-        // 순수한 한국어 또는 영어 알파벳으로만 구성된 2~8자 단어
-        const namePattern = /^([가-힣a-zA-Z\s]{2,8})$/;
-        const match = trimmed.match(namePattern);
-
-        let isName = false;
-        let RawName = "";
-
-        if (match) {
-            RawName = match[1].trim();
-            
-            // 이름 뒤에 동사 어미나 조사가 붙어있는지 엄밀히 판단
-            const hasInvalidSuffix = blacklistSuffixes.some(suffix => {
-                return RawName.endsWith(suffix) && RawName.length > suffix.length;
-            });
-            // 금지된 단어가 닉네임에 섞여 있는지 판단
-            const hasInvalidToken = invalidNameTokens.some(token => RawName.includes(token));
-
-            if (!hasInvalidSuffix && !hasInvalidToken) {
-                isName = true;
-            }
-        }
-
-        // 3. 고정 등장인물 이름 보정 로직 (오타 구제)
-        if (!isName) {
-            if (trimmed.includes('알레한드로') || trimmed.includes('골리코프')) {
-                isName = true; RawName = '알레한드로 골리코프';
-            } else if (trimmed.includes('토르벤') || trimmed.includes('파트로소프')) {
-                isName = true; RawName = '토르벤 파트로소프';
-            } else if (currentMyName && trimmed === currentMyName) {
-                isName = true; RawName = currentMyName;
-            }
-        }
-
-        // 4. 이름 분기 및 본문 누적 처리
-        if (isName) {
-            // 새 화자가 나타나면 기존에 쌓아두었던 대화 저장
+        // 4. 새로운 화자가 감지되었다면
+        if (isSpeakerLine) {
+            // 이전에 쌓고 있던 본문이 있다면 저장 (말풍선 하나로 병합)
             if (currentSpeaker && currentMessageAccumulator.length > 0) {
-                let textBlock = currentMessageAccumulator.join(' ').trim();
-                // 저장하려는 본문이 외계어 덩어리라면 저장하지 않고 버림
-                if (textBlock && !garbagePattern.test(textBlock) && textBlock.length > 1) {
-                    saveMessage(currentSpeaker, textBlock);
+                let fullBody = currentMessageAccumulator.join(' ').trim();
+                // 본문 내부에 숨은 화자 이름 노이즈 제거
+                targetSpeakers.forEach(t => { fullBody = fullBody.replace(new RegExp(t, 'g'), ''); });
+                fullBody = fullBody.trim();
+                
+                if (fullBody.length > 1) {
+                    saveMessage(currentSpeaker, fullBody);
                 }
             }
 
-            // 확정된 대화 참여자 이름 표준화 mapping
-            if (currentMyName && (RawName.includes(currentMyName.substring(0, 2)) || RawName.includes(currentMyName))) {
-                currentSpeaker = currentMyName;
-            } else if (RawName.includes('알레한드로')) {
-                currentSpeaker = '알레한드로 골리코프';
-            } else if (RawName.includes('토르벤')) {
-                currentSpeaker = '토르벤 파트로소프';
-            } else {
-                currentSpeaker = RawName;
-            }
-
-            if (currentSpeaker !== currentMyName && currentSpeaker !== "시스템") {
+            // 상태 변경 및 드롭다운 목록 등록
+            currentSpeaker = matchedSpeaker;
+            if (currentSpeaker !== currentMyName) {
                 detectedSpeakers.add(currentSpeaker);
             }
-
-            currentMessageAccumulator = []; 
+            currentMessageAccumulator = [];
         } else {
-            // 본문 내용 찌꺼기 정제 후 스택에 누적
-            // 밴드 UI 요소들 2차 제거
-            if (invalidNameTokens.some(t => trimmed.includes(t)) || trimmed.includes("표정짓기")) {
-                return;
-            }
-            
-            // 메시지 내부에 포함된 잔여 특수문자 가볍게 정리
-            trimmed = trimmed.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
-            
-            if (currentSpeaker && trimmed) {
-                currentMessageAccumulator.push(trimmed);
+            // 화자 줄이 아니면 무조건 현재 화자의 본문 스택으로 편입 (문장 쪼개짐 원천 방쇄)
+            if (currentSpeaker) {
+                currentMessageAccumulator.push(line);
             }
         }
     });
 
-    // 마지막 남은 잔여 대화 찌꺼기 최종 커밋
+    // 루프가 끝난 뒤 마지막 잔여 메시지 플러시
     if (currentSpeaker && currentMessageAccumulator.length > 0) {
-        let textBlock = currentMessageAccumulator.join(' ').trim();
-        if (textBlock && !garbagePattern.test(textBlock) && textBlock.length > 1) {
-            saveMessage(currentSpeaker, textBlock);
+        let fullBody = currentMessageAccumulator.join(' ').trim();
+        targetSpeakers.forEach(t => { fullBody = fullBody.replace(new RegExp(t, 'g'), ''); });
+        fullBody = fullBody.trim();
+        if (fullBody.length > 1) {
+            saveMessage(currentSpeaker, fullBody);
         }
     }
 }
 
 function saveMessage(speaker, text) {
+    // 멘션 기호(@) 정제 및 본문 가공
     allMessages.push({
         speaker: speaker,
         message: text
@@ -273,8 +250,8 @@ function updateSpeakerDropdown() {
     speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
     
     detectedSpeakers.forEach(speaker => {
-        // 엄격한 드롭다운 정화: 8자 초과 혹은 쓰레기 토큰 유입 원천 차단
-        if (speaker !== currentMyName && speaker.length <= 8) {
+        // En hr 같은 쓰레기 필터가 드롭다운에 못 나오게 엄격 검증
+        if (speaker !== currentMyName && speaker.length <= 12 && !speaker.includes('En')) {
             const option = document.createElement('option');
             option.value = speaker;
             option.textContent = speaker;
@@ -297,13 +274,19 @@ function renderChat() {
 
         const isMyMsg = (msg.speaker === currentMyName);
         const chatClass = isMyMsg ? 'my' : 'other';
-        const highlightedMsg = msg.message.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
+        
+        // 본문 안의 내 이름이나 @ 기호 하이라이팅 처리
+        let displayMsg = msg.message;
+        if (currentMyName) {
+            displayMsg = displayMsg.replace(new RegExp(`@?${currentMyName}`, 'g'), `<span style="color: #1a56db; font-weight: bold;">@${currentMyName}</span>`);
+        }
+        displayMsg = displayMsg.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
 
         const messageElement = document.createElement('div');
         messageElement.className = `message-item ${chatClass}`;
         messageElement.innerHTML = `
             <div class="speaker-name"><strong>${msg.speaker}</strong></div>
-            <div class="message-content">${highlightedMsg}</div>
+            <div class="message-content">${displayMsg}</div>
         `;
         chatContainer.appendChild(messageElement);
     });
