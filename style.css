@@ -1,0 +1,1957 @@
+/*======================================================
+    BAND Chat Backup
+    CSS Part 1
+    Layout
+======================================================*/
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+:root{
+
+    --bg:#eef2f7;
+
+    --panel:#ffffff;
+
+    --sidebar:#f7f9fc;
+
+    --header:#2d3748;
+
+    --viewer:#c8d8eb;
+
+    --border:#d8dee7;
+
+    --text:#2f3542;
+
+    --sub:#6b7280;
+
+    --yellow:#fee500;
+
+    --white:#ffffff;
+
+    --radius:18px;
+
+    --shadow:
+        0 8px 24px rgba(0,0,0,.08);
+
+    --transition:.25s;
+
+    --sidebar-width:360px;
+
+    --font:
+        "Pretendard",
+        "Malgun Gothic",
+        sans-serif;
+
+}
+
+/*======================
+    BODY
+======================*/
+
+html{
+
+    height:100%;
+
+}
+
+body{
+
+    min-height:100vh;
+
+    background:var(--bg);
+
+    font-family:var(--font);
+
+    color:var(--text);
+
+}
+
+/*======================
+    APP
+======================*/
+
+.app{
+
+    width:min(1800px,95vw);
+
+    height:95vh;
+
+    margin:2vh auto;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+/*======================
+    HEADER
+======================*/
+
+.header{
+
+    height:74px;
+
+    background:var(--header);
+
+    color:white;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 28px;
+
+    border-radius:
+        var(--radius)
+        var(--radius)
+        0
+        0;
+
+    box-shadow:var(--shadow);
+
+}
+
+.header h1{
+
+    font-size:1.4rem;
+
+    margin-bottom:4px;
+
+}
+
+.header p{
+
+    opacity:.75;
+
+    font-size:.82rem;
+
+}
+
+.header-buttons{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+}
+
+/*======================
+    MAIN
+======================*/
+
+.main-layout{
+
+    flex:1;
+
+    display:flex;
+
+    overflow:hidden;
+
+}
+
+/*======================
+    SIDEBAR
+======================*/
+
+.sidebar{
+
+    width:var(--sidebar-width);
+
+    background:var(--sidebar);
+
+    border-right:1px solid var(--border);
+
+    overflow-y:auto;
+
+    padding:24px;
+
+}
+
+/*======================
+    PANEL
+======================*/
+
+.panel{
+
+    background:var(--panel);
+
+    border-radius:16px;
+
+    padding:18px;
+
+    margin-bottom:18px;
+
+    box-shadow:
+
+        0 2px 8px rgba(0,0,0,.05);
+
+}
+
+.panel h3{
+
+    margin-bottom:16px;
+
+    font-size:1rem;
+
+}
+
+/*======================
+    VIEWER
+======================*/
+
+.viewer{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    background:var(--viewer);
+
+}
+
+/*======================
+    TOOLBAR
+======================*/
+
+.viewer-toolbar{
+
+    height:58px;
+
+    background:white;
+
+    border-bottom:1px solid var(--border);
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 20px;
+
+}
+
+/*======================
+    CHAT AREA
+======================*/
+
+#chat-wrapper{
+
+    flex:1;
+
+    overflow-y:auto;
+
+    padding:32px;
+
+}
+
+#chat-container{
+
+    width:100%;
+
+    max-width:860px;
+
+    margin:0 auto;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:22px;
+
+}
+
+/*======================
+    GROUP
+======================*/
+
+.chat-group{
+
+    display:flex;
+
+    width:100%;
+
+}
+
+.chat-group.other{
+
+    justify-content:flex-start;
+
+}
+
+.chat-group.my{
+
+    justify-content:flex-end;
+
+}
+
+/*======================
+    MESSAGE ROW
+======================*/
+
+.message-row{
+
+    display:flex;
+
+    align-items:flex-end;
+
+    gap:8px;
+
+    width:100%;
+
+}
+
+.chat-group.other .message-row{
+
+    justify-content:flex-start;
+
+}
+
+.chat-group.my .message-row{
+
+    flex-direction:row-reverse;
+
+    justify-content:flex-end;
+
+}
+/*======================
+    BODY
+======================*/
+
+.message-body{
+
+    display:flex;
+
+    flex-direction:column;
+
+    max-width:680px;
+
+}
+
+/*======================
+    SCROLLBAR
+======================*/
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#bfc9d8;
+
+    border-radius:999px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:transparent;
+
+}
+
+/*======================
+    HOVER
+======================*/
+
+button,
+input,
+select{
+
+    transition:var(--transition);
+
+}
+
+.panel:hover{
+
+    transform:translateY(-2px);
+
+}
+
+/*======================
+    SYSTEM MESSAGE
+======================*/
+
+.system-message{
+
+    align-self:center;
+
+    padding:
+
+        10px
+        20px;
+
+    border-radius:999px;
+
+    background:
+
+        rgba(0,0,0,.18);
+
+    color:white;
+
+    font-size:.85rem;
+
+}
+
+/*======================================================
+    BAND Chat Backup
+    CSS Part 2
+    Sidebar UI
+======================================================*/
+
+
+/*======================
+    BUTTON
+======================*/
+
+button{
+
+    border:none;
+
+    outline:none;
+
+    cursor:pointer;
+
+    font-family:inherit;
+
+    transition:.2s;
+
+}
+
+button:disabled{
+
+    opacity:.55;
+
+    cursor:not-allowed;
+
+}
+
+
+/*======================
+    업로드 버튼
+======================*/
+
+.upload-button{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    width:100%;
+
+    height:50px;
+
+    background:#3b82f6;
+
+    color:white;
+
+    border-radius:12px;
+
+    font-weight:700;
+
+    font-size:.95rem;
+
+}
+
+.upload-button:hover{
+
+    background:#2563eb;
+
+}
+
+
+/*======================
+    취소 버튼
+======================*/
+
+.danger-button{
+
+    width:100%;
+
+    height:46px;
+
+    margin-top:10px;
+
+    background:#ef4444;
+
+    color:white;
+
+    border-radius:12px;
+
+    font-weight:600;
+
+}
+
+.danger-button:hover{
+
+    background:#dc2626;
+
+}
+
+
+/*======================
+    저장 버튼
+======================*/
+
+#save-button{
+
+    width:140px;
+
+    height:44px;
+
+    border-radius:12px;
+
+    background:#22c55e;
+
+    color:white;
+
+    font-weight:700;
+
+}
+
+#save-button:hover{
+
+    background:#16a34a;
+
+}
+
+
+/*======================
+    다크모드 버튼
+======================*/
+
+#theme-toggle{
+
+    width:44px;
+
+    height:44px;
+
+    border-radius:50%;
+
+    background:white;
+
+    font-size:1rem;
+
+}
+
+#theme-toggle:hover{
+
+    transform:rotate(20deg);
+
+}
+
+
+/*======================
+    INPUT
+======================*/
+
+input[type=text]{
+
+    width:100%;
+
+    height:44px;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    padding:0 14px;
+
+    outline:none;
+
+    background:white;
+
+}
+
+input[type=text]:focus{
+
+    border-color:#3b82f6;
+
+}
+
+
+/*======================
+    SELECT
+======================*/
+
+select{
+
+    width:100%;
+
+    height:46px;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    padding:0 12px;
+
+    background:white;
+
+    outline:none;
+
+    margin-bottom:14px;
+
+    cursor:pointer;
+
+}
+
+select:hover{
+
+    border-color:#93c5fd;
+
+}
+
+select:focus{
+
+    border-color:#3b82f6;
+
+}
+
+
+/*======================
+    프로필 카드
+======================*/
+
+.profile-setting{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+    margin-bottom:18px;
+
+}
+
+
+/* 원형 미리보기 */
+
+.avatar-preview{
+
+    width:58px;
+
+    height:58px;
+
+    border-radius:50%;
+
+    overflow:hidden;
+
+    background:#dbe4ef;
+
+    flex-shrink:0;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+
+}
+
+.avatar-preview img{
+
+    width:100%;
+
+    height:100%;
+
+    object-fit:cover;
+
+}
+
+
+/* 오른쪽 영역 */
+
+.profile-info{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+}
+
+.profile-info label{
+
+    font-size:.88rem;
+
+    font-weight:600;
+
+    color:var(--text);
+
+}
+
+.profile-info input{
+
+    width:100%;
+
+}
+
+
+/*======================
+    CHECKBOX
+======================*/
+
+.panel label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    cursor:pointer;
+
+    margin-bottom:12px;
+
+    font-size:.92rem;
+
+}
+
+.panel input[type=checkbox]{
+
+    width:18px;
+
+    height:18px;
+
+    accent-color:#3b82f6;
+
+}
+
+
+/*======================
+    파일명
+======================*/
+
+#file-name{
+
+    margin-top:14px;
+
+    font-size:.86rem;
+
+    color:var(--sub);
+
+    line-height:1.45;
+
+    word-break:break-all;
+
+}
+
+
+/*======================
+    진행바
+======================*/
+
+.progress{
+
+    width:100%;
+
+    height:12px;
+
+    background:#d9e2ef;
+
+    border-radius:999px;
+
+    overflow:hidden;
+
+    margin-bottom:12px;
+
+}
+
+#progress-bar{
+
+    width:0%;
+
+    height:100%;
+
+    background:
+
+        linear-gradient(
+            90deg,
+            #3b82f6,
+            #06b6d4
+        );
+
+    transition:.35s;
+
+}
+
+#progress-text{
+
+    text-align:center;
+
+    font-size:.85rem;
+
+    color:var(--sub);
+
+}
+
+
+/*======================
+    검색창
+======================*/
+
+#search-box{
+
+    width:260px;
+
+}
+
+
+/*======================
+    분석 결과
+======================*/
+
+#analysis-result{
+
+    color:var(--sub);
+
+    font-size:.9rem;
+
+    font-weight:600;
+
+}
+
+
+/*======================
+    저장 메뉴
+======================*/
+
+.save-dropdown{
+
+    position:relative;
+
+}
+
+.save-menu{
+
+    position:absolute;
+
+    right:0;
+
+    top:54px;
+
+    width:200px;
+
+    background:white;
+
+    border-radius:14px;
+
+    box-shadow:
+
+        0 12px 28px rgba(0,0,0,.15);
+
+    overflow:hidden;
+
+    display:none;
+
+    z-index:999;
+
+}
+
+.save-menu.show{
+
+    display:block;
+
+}
+
+.save-menu button{
+
+    width:100%;
+
+    height:48px;
+
+    background:white;
+
+    text-align:left;
+
+    padding-left:18px;
+
+}
+
+.save-menu button:hover{
+
+    background:#eef5ff;
+
+}
+
+
+/*======================
+    Panel Animation
+======================*/
+
+.panel{
+
+    transition:.22s;
+
+}
+
+.panel:hover{
+
+    transform:translateY(-2px);
+
+}
+
+
+/*======================
+    업로드 드래그 효과
+======================*/
+
+.upload-button.dragover{
+
+    background:#1d4ed8;
+
+    transform:scale(1.02);
+
+}
+
+/*======================================================
+    BAND Chat Backup
+    CSS Part 3
+    Chat Group
+======================================================*/
+
+
+/*======================
+    대화 그룹
+======================*/
+.chat-group{
+
+    width:100%;
+
+    display:flex;
+
+    margin-bottom:18px;
+
+}
+
+.chat-group.other{
+
+    justify-content:flex-start;
+
+    padding-right:80px;
+
+}
+
+.chat-group.my{
+
+    justify-content:flex-end;
+
+    padding-left:80px;
+
+}
+
+/*======================
+    행
+======================*/
+
+.message-row{
+
+    display:flex;
+
+    align-items:flex-end;
+
+    gap:12px;
+
+    max-width:90%;
+
+}
+
+.chat-group.my .message-row{
+
+    flex-direction:row-reverse;
+
+}
+
+
+/*======================
+    프로필
+======================*/
+
+.avatar{
+
+    width:48px;
+
+    height:48px;
+
+    border-radius:50%;
+
+    overflow:hidden;
+
+    flex-shrink:0;
+
+    background:#d8e0ea;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.10);
+
+}
+
+.avatar img{
+
+    width:100%;
+
+    height:100%;
+
+    object-fit:cover;
+
+}
+
+
+/*======================
+    메시지 영역
+======================*/
+
+.message-body{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+}
+
+.chat-group.my .message-body{
+
+    align-items:flex-end;
+
+}
+
+
+/*======================
+    이름
+======================*/
+
+.speaker-name{
+
+    width:100%;
+
+    font-size:.82rem;
+
+    color:#64748b;
+
+    margin-bottom:6px;
+
+    font-weight:700;
+
+    text-align:left;
+
+}
+
+.chat-group.my .speaker-name{
+
+    text-align:right;
+
+}
+}
+
+
+/*======================
+    여러 말풍선
+======================*/
+
+.message-stack{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:6px;
+
+}
+
+.chat-group.my .message-stack{
+
+    align-items:flex-end;
+
+}
+
+
+/*======================
+    말풍선
+======================*/
+
+.message-content{
+
+    position:relative;
+
+    display:inline-block;
+
+    width:fit-content;
+
+    min-width:70px;
+
+    max-width:70%;
+
+    padding:13px 17px;
+
+    border-radius:18px;
+
+    line-height:1.65;
+
+    font-size:.95rem;
+
+    white-space:pre-wrap;
+
+    word-break:break-word;
+
+    text-align:left;
+
+    box-shadow:
+
+        0 2px 10px rgba(0,0,0,.08);
+
+}
+
+
+/*======================
+    상대방
+======================*/
+
+.chat-group.other .message-content{
+
+    align-self:flex-start;
+
+    background:white;
+
+    color:#222;
+
+    border-top-left-radius:6px;
+
+}
+
+
+/*======================
+    나
+======================*/
+
+.chat-group.my .message-content{
+
+    align-self:flex-end;
+
+    background:#fee500;
+
+    color:#222;
+
+    border-top-right-radius:6px;
+
+}
+
+
+/*======================
+    꼬리
+======================*/
+
+.chat-group.other .message-content:first-child::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:-6px;
+
+    top:14px;
+
+    width:12px;
+
+    height:12px;
+
+    background:white;
+
+    transform:rotate(45deg);
+
+}
+
+.chat-group.my .message-content:first-child::before{
+
+    content:"";
+
+    position:absolute;
+
+    right:-6px;
+
+    top:14px;
+
+    width:12px;
+
+    height:12px;
+
+    background:#fee500;
+
+    transform:rotate(45deg);
+
+}
+
+
+/*======================
+    연속 말풍선
+======================*/
+
+.message-stack .message-content{
+
+    margin:0;
+
+}
+
+.message-stack .message-content + .message-content{
+
+    margin-top:4px;
+
+}
+
+.message-stack .message-content:last-child{
+
+    margin-bottom:0;
+
+}
+
+
+/*======================
+    시간
+======================*/
+
+.message-time{
+
+    margin-top:6px;
+
+    font-size:.72rem;
+
+    color:#94a3b8;
+
+}
+
+.chat-group.other .message-time{
+
+    align-self:flex-start;
+
+    text-align:left;
+
+}
+
+.chat-group.my .message-time{
+
+    align-self:flex-end;
+
+    text-align:right;
+
+}
+
+/*======================
+    멘션
+======================*/
+
+.mention{
+
+    color:#2563eb;
+
+    font-weight:700;
+
+}
+
+
+/*======================
+    이미지
+======================*/
+
+.message-image{
+
+    margin-top:8px;
+
+    width:fit-content;
+
+    max-width:70%;
+
+}
+
+.chat-group.my .message-image{
+
+    align-self:flex-end;
+
+}
+
+.chat-group.other .message-image{
+
+    align-self:flex-start;
+
+}
+
+.message-image img{
+
+    display:block;
+
+    max-width:100%;
+
+    border-radius:12px;
+
+}
+
+/*======================
+    수정 가능
+======================*/
+
+.message-content.editable{
+
+    outline:2px dashed #3b82f6;
+
+    cursor:text;
+
+}
+
+
+/*======================
+    Hover
+======================*/
+
+.message-content:hover{
+
+    transform:translateY(-1px);
+
+    box-shadow:
+
+        0 8px 20px rgba(0,0,0,.12);
+
+}
+
+
+/*======================
+    선택
+======================*/
+
+.message-content{
+
+    user-select:text;
+
+}
+
+
+/*======================
+    애니메이션
+======================*/
+
+.chat-group{
+
+    animation:
+
+        popup .18s ease;
+
+}
+
+@keyframes popup{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(12px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:none;
+
+    }
+
+}
+
+
+/*======================
+    긴 코드
+======================*/
+
+.message-content pre{
+
+    overflow:auto;
+
+    background:#1e293b;
+
+    color:white;
+
+    padding:12px;
+
+    border-radius:10px;
+
+    margin-top:10px;
+
+}
+
+
+/*======================
+    인용
+======================*/
+
+.message-content blockquote{
+
+    border-left:
+
+        4px solid #60a5fa;
+
+    padding-left:10px;
+
+    margin:8px 0;
+
+    color:#475569;
+
+}
+
+
+/*======================
+    링크
+======================*/
+
+.message-content a{
+
+    color:#2563eb;
+
+}
+
+.message-content a:hover{
+
+    text-decoration:underline;
+
+}
+
+/*======================================================
+    BAND Chat Backup
+    CSS Part 4
+    Responsive / Dark / Export
+======================================================*/
+
+
+/*======================
+    Export
+======================*/
+
+.export-mode{
+
+    background:white !important;
+
+}
+
+.export-mode #chat-wrapper{
+
+    background:#c8d8eb;
+
+}
+
+.export-mode .viewer{
+
+    background:#c8d8eb;
+
+}
+
+.export-mode .viewer-toolbar{
+
+    display:none;
+
+}
+
+.export-mode .sidebar{
+
+    display:none;
+
+}
+
+.export-mode .header{
+
+    display:none;
+
+}
+
+.export-mode .main-layout{
+
+    display:block;
+
+}
+
+.export-mode #chat-container{
+
+    max-width:900px;
+
+    padding:30px;
+
+}
+
+
+/*======================
+    Print
+======================*/
+
+@media print{
+
+    body{
+
+        background:white;
+
+    }
+
+    .sidebar{
+
+        display:none;
+
+    }
+
+    .header{
+
+        display:none;
+
+    }
+
+    .viewer-toolbar{
+
+        display:none;
+
+    }
+
+    .viewer{
+
+        background:white;
+
+    }
+
+    #chat-wrapper{
+
+        overflow:visible;
+
+        padding:0;
+
+    }
+
+    #chat-container{
+
+        max-width:none;
+
+        width:100%;
+
+    }
+
+}
+
+
+/*======================
+    Tablet
+======================*/
+
+@media (max-width:1200px){
+
+    :root{
+
+        --sidebar-width:300px;
+
+    }
+
+}
+
+
+/*======================
+    Mobile
+======================*/
+
+@media (max-width:900px){
+
+    .main-layout{
+
+        flex-direction:column;
+
+    }
+
+    .sidebar{
+
+        width:100%;
+
+        border-right:none;
+
+        border-bottom:1px solid var(--border);
+
+        max-height:420px;
+
+    }
+
+    .viewer{
+
+        flex:1;
+
+    }
+
+    .viewer-toolbar{
+
+        flex-direction:column;
+
+        gap:10px;
+
+        align-items:stretch;
+
+        height:auto;
+
+        padding:16px;
+
+    }
+
+    #search-box{
+
+        width:100%;
+
+    }
+
+}
+
+
+/*======================
+    Small Mobile
+======================*/
+
+@media (max-width:600px){
+
+    .header{
+
+        padding:16px;
+
+        height:auto;
+
+        flex-direction:column;
+
+        gap:14px;
+
+        align-items:flex-start;
+
+    }
+
+    .header-buttons{
+
+        width:100%;
+
+        justify-content:space-between;
+
+    }
+
+    .panel{
+
+        padding:15px;
+
+    }
+
+    #chat-wrapper{
+
+        padding:16px;
+
+    }
+
+    .message-row{
+
+        max-width:100%;
+
+    }
+
+    .avatar{
+
+        width:42px;
+
+        height:42px;
+
+    }
+
+    .message-content{
+
+        max-width:100%;
+
+        font-size:.9rem;
+
+    }
+
+}
+
+
+/*======================
+    Dark Mode
+======================*/
+
+body.dark{
+
+    --bg:#0f172a;
+
+    --panel:#1e293b;
+
+    --sidebar:#16202d;
+
+    --viewer:#1a2635;
+
+    --border:#334155;
+
+    --text:#f1f5f9;
+
+    --sub:#94a3b8;
+
+}
+
+body.dark .header{
+
+    background:#020617;
+
+}
+
+body.dark .viewer-toolbar{
+
+    background:#1e293b;
+
+}
+
+body.dark input,
+
+body.dark select{
+
+    background:#0f172a;
+
+    color:white;
+
+    border-color:#334155;
+
+}
+
+body.dark .panel{
+
+    background:#1e293b;
+
+}
+
+body.dark .speaker-name{
+
+    color:#cbd5e1;
+
+}
+
+body.dark .message-content{
+
+    color:white;
+
+}
+
+body.dark .chat-group.other .message-content{
+
+    background:#334155;
+
+}
+
+body.dark .chat-group.other .message-content::before{
+
+    background:#334155;
+
+}
+
+body.dark .chat-group.my .message-content{
+
+    color:#222;
+
+}
+
+
+/*======================
+    Selection
+======================*/
+
+::selection{
+
+    background:#3b82f6;
+
+    color:white;
+
+}
+
+
+/*======================
+    Fade
+======================*/
+
+.fade-in{
+
+    animation:fadeIn .25s ease;
+
+}
+
+@keyframes fadeIn{
+
+    from{
+
+        opacity:0;
+
+    }
+
+    to{
+
+        opacity:1;
+
+    }
+
+}
+
+
+/*======================
+    Scale
+======================*/
+
+.scale-in{
+
+    animation:scaleIn .18s ease;
+
+}
+
+@keyframes scaleIn{
+
+    from{
+
+        transform:scale(.96);
+
+        opacity:0;
+
+    }
+
+    to{
+
+        transform:none;
+
+        opacity:1;
+
+    }
+
+}
+
+
+/*======================
+    Utility
+======================*/
+
+.hidden{
+
+    display:none !important;
+
+}
+
+.flex{
+
+    display:flex;
+
+}
+
+.center{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+
+/*======================
+    Drag Highlight
+======================*/
+
+.dragging{
+
+    outline:3px dashed #3b82f6;
+
+    outline-offset:6px;
+
+}
+
+
+/*======================
+    Loading
+======================*/
+
+.loading{
+
+    pointer-events:none;
+
+    opacity:.7;
+
+}
+
+
+/*======================
+    OCR Progress Pulse
+======================*/
+
+#progress-bar.processing{
+
+    animation:pulseBar 1.2s infinite;
+
+}
+
+@keyframes pulseBar{
+
+    0%{
+
+        filter:brightness(1);
+
+    }
+
+    50%{
+
+        filter:brightness(1.3);
+
+    }
+
+    100%{
+
+        filter:brightness(1);
+
+    }
+
+}
+
+
+/*======================
+    Save Dropdown Animation
+======================*/
+
+.save-menu{
+
+    transform-origin:top right;
+
+}
+
+.save-menu.show{
+
+    animation:menuOpen .15s ease;
+
+}
+
+@keyframes menuOpen{
+
+    from{
+
+        opacity:0;
+
+        transform:scale(.95);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:none;
+
+    }
+
+}
