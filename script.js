@@ -1,4 +1,4 @@
-// 1. PDF.js Worker 설정
+// 1. PDF.js Worker 고정 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 // DOM 요소 정의
@@ -6,18 +6,13 @@ const fileInput = document.getElementById('pdf-upload');
 const fileNameDisplay = document.getElementById('file-name');
 const chatContainer = document.getElementById('chat-container');
 const exportBtn = document.getElementById('btn-export');
+const speakerSelect = document.getElementById('speaker-select');
 
-// 필터 버튼들
-const btnAll = document.getElementById('btn-all');
-const btnAlejandro = document.getElementById('btn-alejandro');
-const btnTorben = document.getElementById('btn-torben');
-
-// 파싱된 전체 대화 데이터를 저장할 배열
-let allMessages = []; 
-let currentFilter = 'all'; // 'all', 'alejandro', 'torben'
-
-// 내 이름 설정 (나와 상대를 구분하는 기준)
+// 내 이름 (우측 정렬용 고정값)
 const MY_NAME = '콘스탄틴 하벨';
+
+let allMessages = []; // 파싱된 전체 데이터
+let detectedSpeakers = new Set(); // 자동으로 감지한 상대방 목록
 
 // 2. 파일 업로드 이벤트
 fileInput.addEventListener('change', function(e) {
@@ -25,8 +20,11 @@ fileInput.addEventListener('change', function(e) {
     if (!file) return;
 
     fileNameDisplay.textContent = file.name;
-    chatContainer.innerHTML = '<div class="system-message">PDF 문서 분석 중...</div>';
+    chatContainer.innerHTML = '<div class="system-message">PDF 데이터를 분석하고 있습니다...</div>';
     exportBtn.disabled = true;
+    
+    // 드롭다운 초기화
+    speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
 
     const fileReader = new FileReader();
     fileReader.onload = function() {
@@ -40,7 +38,7 @@ fileInput.addEventListener('change', function(e) {
                 countPromises.push(
                     pdf.getPage(i).then(function(page) {
                         return page.getTextContent().then(function(textContent) {
-                            // 줄바꿈 보존을 위해 각 텍스트 객체의 위치를 고려하여 병합
+                            // 줄바꿈이 파편화되는 문제를 막기 위해 줄 구분 문자로 확실하게 결합
                             return textContent.items.map(item => item.str).join('\n');
                         });
                     })
@@ -48,153 +46,177 @@ fileInput.addEventListener('change', function(e) {
             }
 
             Promise.all(countPromises).then(function(pageTexts) {
+                // PDF 내의 텍스트가 모두 병합됨
                 const fullText = pageTexts.join('\n');
-                if (!fullText.trim()) {
-                    throw new Error("PDF에서 텍스트를 추출하지 못했습니다.");
-                }
                 
-                // 텍스트 분석하여 메모리에 저장
+                // 텍스트 분석 실행
                 parseMessages(fullText);
                 
-                // 화면에 렌더링
-                renderChat();
+                if (allMessages.length === 0) {
+                    throw new Error("PDF에서 대화 데이터 형태를 추출할 수 없습니다. 텍스트 레이어를 다시 확인해 주세요.");
+                }
+
+                // 3. 상대방 목록을 바탕으로 드롭다운 자동 갱신
+                updateSpeakerDropdown();
                 
-                // 이미지 저장 버튼 활성화
+                // 4. 화면 렌더링 및 다운로드 버튼 활성화
+                renderChat();
                 exportBtn.disabled = false;
+                
             }).catch(function(err) {
                 showError("분석 실패: " + err.message);
             });
         }).catch(function(error) {
-            showError("PDF 로드 실패: " + error.message);
+            showError("PDF 로딩 실패: " + error.message);
         });
     };
     fileReader.readAsArrayBuffer(file);
 });
 
-// 3. 추출된 텍스트 구조 분석 (이름과 메시지 매칭)
+// 3. 네이버 밴드 스타일 텍스트 구조 동적 분석 엔진
 function parseMessages(text) {
-    allMessages = []; // 초기화
+    allMessages = [];
+    detectedSpeakers.clear();
+    
     const lines = text.split('\n');
+    let currentSpeaker = "";
+    let currentMessageAccumulator = [];
 
     lines.forEach(line => {
         const trimmed = line.trim();
         if (!trimmed) return;
 
-        // "이름 내용" 혹은 "이름: 내용" 패턴 분석
-        if (trimmed.includes('@') || trimmed.includes(':')) {
-            // 정규식이나 특정 문자 분할을 통해 파싱
-            let speaker = "";
-            let message = trimmed;
+        // 메신저 이름 분석 패턴 (예: "이름 54, " 또는 "이름 50, 사과" 등)
+        // 뒤에 숫자가 오거나 밴드 정보가 붙은 구역을 이름으로 매칭
+        const namePattern = /^([가-힣\s]+)\s*(?:\d{2}|형사과|검사가|현사과|학|사)/;
+        const match = trimmed.match(namePattern);
 
-            if (trimmed.includes(':')) {
-                const idx = trimmed.indexOf(':');
-                speaker = trimmed.substring(0, idx).trim();
-                message = trimmed.substring(idx + 1).trim();
-            } else if (trimmed.startsWith('@')) {
-                // 언급 형태 처리
-                speaker = "시스템";
-                message = trimmed;
+        if (match) {
+            // 이전에 수집 중이던 대화가 있다면 먼저 큐에 삽입
+            if (currentSpeaker && currentMessageAccumulator.length > 0) {
+                saveMessage(currentSpeaker, currentMessageAccumulator.join(' '));
             }
 
-            // 언급 문자나 본문 정돈
-            if (speaker) {
-                allMessages.push({ speaker, message });
+            // 새로운 스피커 감지 및 한글 정제
+            let RawName = match[1].trim();
+            
+            // 이미지 내 오타 보정 처리 (스크랩 텍스트 특징 보강)
+            if (RawName.includes('콘스탄틴') || RawName.includes('콘스탄')) {
+                currentSpeaker = MY_NAME;
+            } else if (RawName.includes('알레한드로') || RawName.includes('알레한') || RawName.includes('열레한드로')) {
+                currentSpeaker = '알레한드로 골리코프';
+            } else if (RawName.includes('토르벤') || RawName.includes('토르밴')) {
+                currentSpeaker = '토르벤 파트로소프';
+            } else {
+                currentSpeaker = RawName;
+            }
+
+            // 나를 제외한 상대방 이름들만 중복 없이 드롭다운 후보로 수집
+            if (currentSpeaker !== MY_NAME && currentSpeaker !== "시스템") {
+                detectedSpeakers.add(currentSpeaker);
+            }
+
+            currentMessageAccumulator = []; // 누적 데이터 초기화
+        } else {
+            // 텍스트 줄에 불필요하게 껴 있는 밴드 UI 단어 필터링
+            if (trimmed === "번역 보기" || trimmed === "답글쓰기" || trimmed === "글쓰기" || trimmed === "시간" || trimmed === "보기" || trimmed.includes("표정짓기")) {
+                return; 
+            }
+
+            // 대화가 진행 중일 때만 본문을 배열에 추가
+            if (currentSpeaker) {
+                currentMessageAccumulator.push(trimmed);
+            }
+        }
+    });
+
+    // 마지막 남은 메시지 세트 저장
+    if (currentSpeaker && currentMessageAccumulator.length > 0) {
+        saveMessage(currentSpeaker, currentMessageAccumulator.join(' '));
+    }
+}
+
+// 메시지 임시 저장 및 포맷 다듬기
+function saveMessage(speaker, text) {
+    // 멘션 언급 제거 및 텍스트 정리 (예: "@콘스탄틴 하벨 " 부분을 제거하거나 살림)
+    let cleanText = text.trim();
+    allMessages.push({
+        speaker: speaker,
+        message: cleanText
+    });
+}
+
+// 4. 추출된 고유 상대방 목록으로 드롭다운 옵션 자동 생성
+function updateSpeakerDropdown() {
+    detectedSpeakers.forEach(speaker => {
+        const option = document.createElement('option');
+        option.value = speaker;
+        option.textContent = speaker;
+        speakerSelect.appendChild(option);
+    });
+}
+
+// 5. 선택된 인물에 따라 화면에 대화창 렌더링
+function renderChat() {
+    chatContainer.innerHTML = '';
+    const selectedSpeaker = speakerSelect.value;
+
+    allMessages.forEach(msg => {
+        // 드롭다운 필터 적용: 
+        // '전체 대화'가 아니고, 내가 쓴 글도 아니고, 선택된 상대방도 아닌 메시지는 거릅니다.
+        if (selectedSpeaker !== 'all') {
+            if (msg.speaker !== MY_NAME && msg.speaker !== selectedSpeaker) {
                 return;
             }
         }
 
-        // 특정 핵심 인물 이름이 포함되어 있는 줄 분석 (스크랩 텍스트 구조 맞춤)
-        if (trimmed.startsWith('콘스탄틴 하벨') || trimmed.startsWith('콘스탄틴 하별')) {
-            allMessages.push({ speaker: MY_NAME, message: trimmed.replace(/콘스탄틴\s*하[벨별]/, '').trim() });
-        } else if (trimmed.startsWith('알레한드로 골리코프') || trimmed.startsWith('알레한드로 콜리코프') || trimmed.startsWith('열레한드로 골려코프')) {
-            allMessages.push({ speaker: '알레한드로 골리코프', message: trimmed.replace(/알레한드로\s*골리코프|알레한드로\s*콜리코프|열레한드로\s*골려코프/, '').trim() });
-        } else if (trimmed.startsWith('토르벤') || trimmed.startsWith('토르밴')) {
-            allMessages.push({ speaker: '토르벤 파트로소프', message: trimmed.replace(/토르벤|토르밴\s*파트로소프/, '').trim() });
-        } else {
-            // 이외의 줄들은 이전 메시지에 이어 붙이거나 일반 텍스트로 임시 저장
-            if (allMessages.length > 0) {
-                allMessages[allMessages.length - 1].message += " " + trimmed;
-            } else {
-                allMessages.push({ speaker: "알 수 없음", message: trimmed });
-            }
-        }
-    });
-}
+        const isMyMsg = (msg.speaker === MY_NAME);
+        const chatClass = isMyMsg ? 'my' : 'other';
 
-// 4. 필터링 상태에 따른 대화창 화면 그리기
-function renderChat() {
-    chatContainer.innerHTML = '';
+        // @이름 멘션에 하늘색 파란 글씨 속성 부여
+        const highlightedMsg = msg.message.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
 
-    if (allMessages.length === 0) {
-        chatContainer.innerHTML = '<div class="system-message font-red">데이터가 없습니다.</div>';
-        return;
-    }
-
-    allMessages.forEach(msg => {
-        // 필터링 적용
-        if (currentFilter === 'alejandro' && msg.speaker !== '알레한드로 골리코프' && msg.speaker !== MY_NAME) return;
-        if (currentFilter === 'torben' && msg.speaker !== '토르벤 파트로소프' && msg.speaker !== MY_NAME) return;
-
-        // 나(my) 또는 상대방(other) 클래스 지정
-        const isMyMessage = msg.speaker.includes(MY_NAME);
-        const messageClass = isMyMessage ? 'my' : 'other';
-
-        // 멘션 문자(@이름) 링크 스타일 입히기
-        const formattedMessage = msg.message.replace(/(@[^\s]+)/g, '<span style="color: #1e40af; font-weight: bold;">$1</span>');
-
-        const msgElement = document.createElement('div');
-        msgElement.className = `message-item ${messageClass}`;
-        msgElement.innerHTML = `
+        const messageElement = document.createElement('div');
+        messageElement.className = `message-item ${chatClass}`;
+        messageElement.innerHTML = `
             <div class="speaker-name"><strong>${msg.speaker}</strong></div>
-            <div class="message-content">${formattedMessage}</div>
+            <div class="message-content">${highlightedMsg}</div>
         `;
-        chatContainer.appendChild(msgElement);
+        chatContainer.appendChild(messageElement);
     });
 
-    // 스크롤 아래로 내리기
+    // 화면 자동 스크롤 하단 이동
     const chatWrapper = document.querySelector('.chat-wrapper');
     chatWrapper.scrollTop = chatWrapper.scrollHeight;
 }
 
-// 5. 필터 버튼 이벤트 설정
-btnAll.addEventListener('click', () => { setActiveFilter('all', btnAll); });
-btnAlejandro.addEventListener('click', () => { setActiveFilter('alejandro', btnAlejandro); });
-btnTorben.addEventListener('click', () => { setActiveFilter('torben', btnTorben); });
+// 드롭다운 선택값 변경 이벤트
+speakerSelect.addEventListener('change', renderChat);
 
-function setActiveFilter(filter, activeBtn) {
-    currentFilter = filter;
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    activeBtn.classList.add('active');
-    renderChat();
-}
-
-// 6. 대화창 영역 이미지(PNG) 파일로 다운로드 추출 기능
+// 6. 대화창 영역 PNG 파일로 추출하여 다운로드
 exportBtn.addEventListener('click', function() {
     const target = document.querySelector('.chat-wrapper');
-    
-    // 캡처를 위해 잠시 스크롤 제한을 풀고 전체 화면 크기 확보
     const originalHeight = target.style.height;
-    target.style.height = 'auto';
+    target.style.height = 'auto'; // 스크롤바 영역 전체 확보
 
     html2canvas(target, {
-        useCORS: true, // 외부 이미지 로딩 대비
-        backgroundColor: '#b2c7da', // 카톡 배경 고정
+        useCORS: true,
+        backgroundColor: '#b2c7da',
         scrollY: -window.scrollY
     }).then(canvas => {
-        // 복원
-        target.style.height = originalHeight;
+        target.style.height = originalHeight; // 복구
 
-        // 이미지 파일 다운로드 링크 생성
         const image = canvas.toDataURL("image/png");
         const link = document.createElement('a');
-        link.download = `chat_export_${currentFilter}.png`;
+        link.download = `chat_export_${speakerSelect.value}.png`;
         link.href = image;
         link.click();
     }).catch(err => {
-        alert("이미지 저장 중 오류가 발생했습니다: " + err.message);
+        alert("이미지 캡처 중 오류가 발생했습니다: " + err.message);
     });
 });
 
 function showError(message) {
+    console.error(message);
     chatContainer.innerHTML = `<div class="system-message" style="background-color: #e53e3e;">⚠️ ${message}</div>`;
 }
