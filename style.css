@@ -1,4 +1,4 @@
-/* 기존 스타일에 필터 및 나/상대 정렬 추가 */
+/* 기본 레이아웃은 유지하며 드롭다운 및 컨트롤 영역 스타일 추가 */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -65,40 +65,47 @@ body {
 .file-name {
     font-size: 0.85rem;
     color: #4a5568;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* 컨트롤 영역 (필터 및 저장) */
+/* 컨트롤 영역 (드롭다운 정렬) */
 .control-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    padding: 12px 20px;
     background: #fff;
     border-bottom: 1px solid #edf2f7;
 }
 
-.filter-buttons {
+.dropdown-wrapper {
     display: flex;
+    align-items: center;
     gap: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #4a5568;
 }
 
-.filter-btn {
+.styled-select {
     padding: 6px 12px;
     border: 1px solid #cbd5e0;
-    background: #fff;
-    border-radius: 20px;
+    border-radius: 6px;
+    background-color: #f7fafc;
+    font-size: 0.9rem;
+    color: #2d3748;
     cursor: pointer;
-    font-size: 0.85rem;
+    outline: none;
 }
 
-.filter-btn.active {
-    background: #3182ce;
-    color: white;
+.styled-select:focus {
     border-color: #3182ce;
 }
 
 .export-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     background: #38a169;
     color: white;
     border: none;
@@ -126,14 +133,13 @@ body {
     gap: 15px;
 }
 
-/* 💬 말풍선 정렬 구분 */
+/* 말풍선 공통 및 정렬 */
 .message-item {
     display: flex;
     flex-direction: column;
     max-width: 80%;
 }
 
-/* 상대방 메시지 (좌측 정렬, 흰색 바탕) */
 .message-item.other {
     align-self: flex-start;
 }
@@ -143,7 +149,6 @@ body {
     border-radius: 0px 12px 12px 12px;
 }
 
-/* 나(콘스탄틴 하벨) 메시지 (우측 정렬, 카카오톡 노란색 바탕) */
 .message-item.my {
     align-self: flex-end;
 }
