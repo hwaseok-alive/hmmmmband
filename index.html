@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF 대화창 변환기</title>
+    <title>PDF/이미지 대화창 변환기</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- PDF.js 라이브러리 -->
+    <!-- PDF.js 라이브러리 (버전 3.4.120 통일) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <!-- Tesseract.js (OCR 판독 엔진) -->
+    <!-- Tesseract.js (OCR 엔진) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- 이미지(PNG) 저장 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -17,18 +17,18 @@
 
     <div class="app-container">
         <header class="app-header">
-            <h1>💬 PDF 댓글/대화 변환기</h1>
-            <p>PDF를 업로드하고 내 이름을 지정하면 자동으로 대화를 분류합니다.</p>
+            <h1>💬 PDF & 이미지 대화 변환기</h1>
+            <p>PDF 파일이나 캡처 이미지를 올리면 텍스트를 파싱하여 대화창으로 변환합니다.</p>
         </header>
 
         <!-- 파일 업로드 영역 -->
         <div class="upload-section">
-            <label for="pdf-upload" class="upload-btn">📁 PDF 파일 선택하기</label>
-            <input type="file" id="pdf-upload" accept=".pdf" style="display: none;">
+            <label for="pdf-upload" class="upload-btn">📁 파일 선택하기</label>
+            <input type="file" id="pdf-upload" accept=".pdf, .png, .jpg, .jpeg" style="display: none;">
             <div id="file-name" class="file-name">선택된 파일 없음</div>
         </div>
 
-        <!-- ⚙️ 개인화 및 필터 컨트롤 영역 (내 이름 입력창 추가) -->
+        <!-- 필터 및 이름 입력 컨트롤 영역 -->
         <div class="control-section">
             <div class="input-wrapper">
                 <label for="my-name-input">내 이름: </label>
@@ -40,13 +40,13 @@
                     <option value="all">전체 대화</option>
                 </select>
             </div>
-            <button id="btn-export" class="export-btn" disabled>💾 저장</button>
+            <button id="btn-export" class="export-btn" disabled>💾 이미지 저장</button>
         </div>
 
         <!-- 대화창 렌더링 영역 -->
         <div class="chat-wrapper">
             <div id="chat-container" class="chat-container">
-                <div class="system-message">PDF 파일을 업로드하시면 이곳에 대화창이 생성됩니다.</div>
+                <div class="system-message">PDF 또는 이미지 파일을 업로드하시면 대화창이 생성됩니다.</div>
             </div>
         </div>
     </div>
