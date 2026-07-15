@@ -1,4 +1,4 @@
-// 1. 메인 라이브러리 스크립트 빌드와 완전히 같은 3.4.120 버전으로 워커 강제 지정
+// 1. PDF.js Worker 버전을 라이브러리와 동일한 3.4.120으로 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 const fileInput = document.getElementById('pdf-upload');
@@ -24,12 +24,10 @@ fileInput.addEventListener('change', function(e) {
 
     const fileReader = new FileReader();
 
-    // 이미지 접수 분기
     if (file.type.startsWith('image/')) {
         fileReader.onload = async function() {
             try {
                 chatContainer.innerHTML = '<div class="system-message">이미지 분석 중 (OCR)... <br><span style="font-size: 11px; opacity: 0.8;">잠시만 기다려주세요.</span></div>';
-                
                 const result = await Tesseract.recognize(this.result, 'kor+eng');
                 rawExtractedText = result.data.text;
                 processTextAndRender();
@@ -39,13 +37,11 @@ fileInput.addEventListener('change', function(e) {
         };
         fileReader.readAsDataURL(file);
     } 
-    // PDF 접수 분기 (3.4.120 버전 스펙 완벽 가동)
     else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
         fileReader.onload = async function() {
             try {
                 chatContainer.innerHTML = '<div class="system-message">PDF 데이터를 스캔하는 중...</div>';
                 const typedarray = new Uint8Array(this.result);
-                
                 const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
                 let maxPages = pdf.numPages;
                 let combinedText = "";
@@ -53,7 +49,6 @@ fileInput.addEventListener('change', function(e) {
                 for (let i = 1; i <= maxPages; i++) {
                     chatContainer.innerHTML = `<div class="system-message">PDF ${i} / ${maxPages} 페이지 가상 이미지화 중...</div>`;
                     const page = await pdf.getPage(i);
-                    
                     const viewport = page.getViewport({ scale: 2.5 });
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -61,8 +56,7 @@ fileInput.addEventListener('change', function(e) {
                     canvas.width = viewport.width;
 
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                    chatContainer.innerHTML = `<div class="system-message">글자 추출 판독 중 (OCR): ${i} / ${maxPages} 페이지...<br><span style="font-size: 11px; opacity: 0.8;">문서 해상도에 따라 다소 시간이 걸릴 수 있습니다.</span></div>`;
+                    chatContainer.innerHTML = `<div class="system-message">글자 추출 판독 중 (OCR): ${i} / ${maxPages} 페이지...</div>`;
                     
                     const result = await Tesseract.recognize(canvas, 'kor+eng');
                     combinedText += result.data.text + "\n";
@@ -70,7 +64,6 @@ fileInput.addEventListener('change', function(e) {
 
                 rawExtractedText = combinedText;
                 processTextAndRender();
-
             } catch (error) {
                 showError("PDF 구조 분석 실패: " + error.message);
             }
@@ -82,11 +75,10 @@ fileInput.addEventListener('change', function(e) {
 });
 
 function processTextAndRender() {
-    console.log("=== OCR 판독 최종 결과 ===\n", rawExtractedText);
     parseMessages(rawExtractedText);
     
     if (allMessages.length === 0) {
-        showError("분석은 성공했으나, 이름과 대화 구조를 가진 문장을 추출하지 못했습니다.");
+        showError("대화 내용을 추출하지 못했습니다. 이름 인식 조건을 확인해 주세요.");
         return;
     }
 
@@ -95,6 +87,7 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
+// 문장 오인 버그를 잡은 핵심 파싱 엔진
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
@@ -104,36 +97,71 @@ function parseMessages(text) {
     let currentSpeaker = "";
     let currentMessageAccumulator = [];
 
+    // 문장이 이름으로 오인되는 것을 방지하기 위한 제외 단어/조사 패턴
+    const blacklistWords = ["은", "는", "이", "가", "을", "를", "의", "에서", "합니다", "입니다", "있다", "없다", "요", "과", "와"];
+
     lines.forEach(line => {
         const trimmed = line.trim();
         if (!trimmed) return;
 
-        const namePattern = /^([가-힣a-zA-Z\s]{2,10})\s*(?:\d{2}|형사|검사|현사|학|사|회|부|과|님|$)/;
+        // 1. 이름 매칭 규칙 엄격화: 2~8자 사이의 순수 알파벳/한글/공백만 허용하고 특수문자나 문장형 어미 차단
+        // 뒤에 조사나 문장형 어미가 붙어있으면 이름이 아니라 대화 본문 문장으로 판정합니다.
+        const namePattern = /^([가-힣a-zA-Z\s]{2,8})$/; 
         const match = trimmed.match(namePattern);
 
+        let isName = false;
+        let RawName = "";
+
         if (match) {
+            RawName = match[1].trim();
+            // 단어 뒤에 명백한 조사나 어미가 붙어있는지 더블 체크
+            const hasBlacklist = blacklistWords.some(word => {
+                return RawName.endsWith(word) && RawName.length > word.length;
+            });
+            // 대화방 UI용 텍스트 필터링
+            const isUiText = (RawName === "번역 보기" || RawName === "답글쓰기" || RawName === "전체 대화" || RawName === "이미지 저장");
+
+            if (!hasBlacklist && !isUiText) {
+                isName = true;
+            }
+        }
+
+        // 2. 강제 닉네임 매칭 보정 규칙 (오타 대응 포함)
+        if (!isName) {
+            if (trimmed.includes('알레한드로') || trimmed.includes('골리코프')) {
+                isName = true; RawName = '알레한드로 골리코프';
+            } else if (trimmed.includes('토르벤') || trimmed.includes('파트로소프')) {
+                isName = true; RawName = '토르벤 파트로소프';
+            } else if (currentMyName && trimmed.includes(currentMyName)) {
+                isName = true; RawName = currentMyName;
+            }
+        }
+
+        // 3. 이름으로 최종 판정된 경우 분기 처리
+        if (isName) {
             if (currentSpeaker && currentMessageAccumulator.length > 0) {
                 saveMessage(currentSpeaker, currentMessageAccumulator.join(' '));
             }
 
-            let RawName = match[1].trim();
-            
+            // 이름 맵핑 정규화
             if (currentMyName && (RawName.includes(currentMyName.substring(0, 2)) || RawName.includes(currentMyName))) {
                 currentSpeaker = currentMyName;
-            } else if (RawName.includes('알레한드로') || RawName.includes('알레한') || RawName.includes('열레한') || RawName.includes('글리코프') || RawName.includes('콜리코프')) {
+            } else if (RawName.includes('알레한드로')) {
                 currentSpeaker = '알레한드로 골리코프';
-            } else if (RawName.includes('토르벤') || RawName.includes('토르밴') || RawName.includes('토르')) {
+            } else if (RawName.includes('토르벤')) {
                 currentSpeaker = '토르벤 파트로소프';
             } else {
                 currentSpeaker = RawName;
             }
 
+            // 드롭다운 등록 (본인 및 시스템 멘트 제외)
             if (currentSpeaker !== currentMyName && currentSpeaker !== "시스템") {
                 detectedSpeakers.add(currentSpeaker);
             }
 
             currentMessageAccumulator = []; 
         } else {
+            // 본문 내용 쌓기
             if (trimmed === "번역 보기" || trimmed === "답글쓰기" || trimmed === "글쓰기" || trimmed === "시간" || trimmed === "보기" || trimmed.includes("표정짓기")) {
                 return; 
             }
@@ -151,6 +179,7 @@ function parseMessages(text) {
 
 function saveMessage(speaker, text) {
     let cleanText = text.trim();
+    if (!cleanText) return;
     allMessages.push({
         speaker: speaker,
         message: cleanText
@@ -162,7 +191,7 @@ function updateSpeakerDropdown() {
     speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
     
     detectedSpeakers.forEach(speaker => {
-        if (speaker !== currentMyName) {
+        if (speaker !== currentMyName && speaker.length <= 8) { // 비정상적으로 긴 이름 차단
             const option = document.createElement('option');
             option.value = speaker;
             option.textContent = speaker;
