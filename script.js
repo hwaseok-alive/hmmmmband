@@ -1,4 +1,4 @@
-// 1. PDF.js 라이브러리 구동을 위한 Worker 경로 설정 (CDN 동일 버전 고정)
+// 1. PDF.js 라이브러리 구동을 위한 Worker 경로 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 // 엘리먼트 가져오기
@@ -32,7 +32,6 @@ fileInput.addEventListener('change', function(e) {
                 countPromises.push(
                     pdf.getPage(i).then(function(page) {
                         return page.getTextContent().then(function(textContent) {
-                            // 페이지 내의 개별 텍스트 조각들을 하나의 문장으로 병합
                             return textContent.items.map(item => item.str).join(' ');
                         });
                     })
@@ -58,12 +57,10 @@ fileInput.addEventListener('change', function(e) {
         });
     };
 
-    // 파일 로드 중 오류 대처
     fileReader.onerror = function() {
         showError("파일을 읽어오는 중에 실패했습니다.");
     };
 
-    // 바이너리 데이터로 파일 읽기 시작
     fileReader.readAsArrayBuffer(file);
 });
 
@@ -71,7 +68,6 @@ fileInput.addEventListener('change', function(e) {
 function parseAndRenderChat(text) {
     chatContainer.innerHTML = ''; // 화면 비우기
 
-    // 줄 단위로 데이터 쪼개기
     const lines = text.split('\n');
     let hasMessages = false;
 
@@ -79,8 +75,6 @@ function parseAndRenderChat(text) {
         const trimmedLine = line.trim();
         if (!trimmedLine) return;
 
-        // 예시 구분 규칙: 이름과 본문 사이에 콜론(:)이 있는 경우
-        // 규칙은 PDF 파일 텍스트 구조에 맞추어 커스텀할 수 있습니다.
         if (trimmedLine.includes(':')) {
             const separatorIndex = trimmedLine.indexOf(':');
             const speaker = trimmedLine.substring(0, separatorIndex).trim();
@@ -91,7 +85,6 @@ function parseAndRenderChat(text) {
                 hasMessages = true;
             }
         } else {
-            // 구분이 모호한 줄은 일반 내용 혹은 시스템 알림으로 표시
             appendMessageHTML("이름 없음", trimmedLine);
             hasMessages = true;
         }
@@ -114,9 +107,10 @@ function appendMessageHTML(speaker, message) {
     
     chatContainer.appendChild(messageElement);
     
-    // 새 메시지가 들어오면 스크롤 제일 하단으로 이동
     const chatWrapper = document.querySelector('.chat-wrapper');
-    chatWrapper.scrollTop = chatWrapper.scrollHeight;
+    if (chatWrapper) {
+        chatWrapper.scrollTop = chatWrapper.scrollHeight;
+    }
 }
 
 // 에러 발생 시 공통 처리 함수
