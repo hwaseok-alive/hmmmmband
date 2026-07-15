@@ -124,101 +124,72 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
-// ⚠️ [새로운 매커니즘] 정규식을 활용한 정밀 분할 및 매칭 엔진
+// 🛠️ 밴드 텍스트 추출용 단어 쪼개기 매커니즘
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
     
     const currentMyName = myNameInput.value.trim();
-    
-    // 타겟팅할 진짜 화자 목록 구성
-    const targetSpeakers = ['알레한드로 골리코프', '토르벤 파트로소프'];
-    if (currentMyName) {
-        targetSpeakers.push(currentMyName);
+    if (!currentMyName) return;
+
+    // 화자 판별 리스트
+    const targetSpeakers = ['알레한드로 골리코프', '토르벤 파트로소프', currentMyName];
+
+    // 전체 텍스트에서 밴드 기능성 UI 단어 및 시간 정보 사전에 삭제
+    let cleanedText = text.split('\n')
+        .filter(line => {
+            let l = line.trim();
+            if (l.includes("표정짓기") || l.includes("답글쓰기") || l.includes("번역 보기") || l.includes("좋아요")) return false;
+            if (/^\d+\s*(시간|분|일)\s*전/.test(l)) return false;
+            return true;
+        })
+        .join('\n');
+
+    // 진짜 프로필 헤더라인을 찾기 위한 정규식 패턴 생성
+    // 본문 안의 멘션(@)은 제외하고, 줄 시작 부분에 이름이 단독 혹은 나이/직급과 오는 패턴 매칭
+    const targetPattern = new RegExp(`(^|\\n)(알레한드로 골리코프|토르벤 파트로소프|${currentMyName})[^\\n@]*`, 'g');
+
+    let match;
+    let matches = [];
+
+    // 1단계: 전체 텍스트에서 진짜 이름이 들어간 헤더 위치를 전부 탐색
+    while ((match = targetPattern.exec(cleanedText)) !== null) {
+        matches.push({
+            index: match.index,
+            speaker: match[2],
+            headerLength: match[0].length
+        });
     }
 
-    // 1. 줄바꿈 노이즈 사전 정제
-    let cleanLines = text.split('\n')
-        .map(line => line.trim())
-        .filter(line => {
-            if (!line) return false;
-            // 밴드 UI 기능성 노이즈 완전 배제
-            if (line.includes("표정짓기") || line.includes("답글쓰기") || line.includes("번역 보기") || line.includes("좋아요")) return false;
-            if (/^\d+\s*(시간|분|일)\s*전/.test(line)) return false; // "3시간 전" 같은 시간 라인 삭제
-            return true;
-        });
+    // 2단계: 찾아낸 화자 위치 기점으로 본문 덩어리 슬라이싱
+    for (let i = 0; i < matches.length; i++) {
+        let currentMatch = matches[i];
+        let speaker = currentMatch.speaker;
+        
+        // 본문 시작점 계산 (이름 헤더 바로 뒷부분부터)
+        let textStart = currentMatch.index + currentMatch.headerLength;
+        // 본문 끝점 계산 (다음 화자 헤더가 나타나기 전까지 혹은 텍스트 끝까지)
+        let textEnd = (i + 1 < matches.length) ? matches[i + 1].index : cleanedText.length;
 
-    // 2. 단일 대화 묶음을 찾기 위한 탐색 루프
-    let tempSpeaker = "";
-    let tempBuffer = [];
+        let messageBody = cleanedText.substring(textStart, textEnd).trim();
 
-    for (let i = 0; i < cleanLines.length; i++) {
-        let line = cleanLines[i];
-        let isRealSpeakerHeader = false;
-        let matchedName = "";
+        if (messageBody) {
+            // 본문 내부의 자잘한 줄바꿈은 공백으로 합치고 특수문자 찌꺼기 청소
+            let cleanBody = messageBody.split('\n')
+                .map(l => l.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim())
+                .filter(l => l.length > 0)
+                .join(' ');
 
-        // 진짜 화자 헤더라인인지 엄격히 판정하는 필터
-        // 본문 멘션(@)이 포함되지 않은 줄 중에서, 타겟 이름과 매치되는지 확인합니다.
-        if (!line.includes('@')) {
-            for (let name of targetSpeakers) {
-                // 이름이 완전히 일치하거나, "이름 + 나이/직급(예: 콘스탄틴 하벨 50, 형사과)" 패턴일 때
-                if (line === name || line.startsWith(name) || (name === '알레한드로 골리코프' && (line.includes('알레한드로') || line.includes('골리코프')))) {
-                    isRealSpeakerHeader = true;
-                    matchedName = name;
-                    break;
+            // 여러 개로 쪼개진 공백 단일화
+            cleanBody = cleanBody.replace(/\s+/g, ' ').trim();
+
+            if (cleanBody.length > 0) {
+                allMessages.push({ speaker: speaker, message: cleanBody });
+                if (speaker !== currentMyName) {
+                    detectedSpeakers.add(speaker);
                 }
             }
         }
-
-        if (isRealSpeakerHeader) {
-            // 이전에 쌓인 대화가 있으면 말풍선으로 내보내기
-            if (tempSpeaker && tempBuffer.length > 0) {
-                pushCleanedMessage(tempSpeaker, tempBuffer);
-            }
-            // 상태를 새로운 화자로 변경
-            tempSpeaker = matchedName;
-            if (tempSpeaker !== currentMyName) {
-                detectedSpeakers.add(tempSpeaker);
-            }
-            tempBuffer = [];
-        } else {
-            // 본문 내용 버퍼에 계속 추가
-            if (tempSpeaker) {
-                tempBuffer.push(line);
-            }
-        }
-    }
-
-    // 마지막 남은 잔여 대화 처리
-    if (tempSpeaker && tempBuffer.length > 0) {
-        pushCleanedMessage(tempSpeaker, tempBuffer);
-    }
-}
-
-// 본문 텍스트 안에 섞여서 들어간 가짜 프로필 텍스트 및 중복 멘션 최종 클리닝 함수
-function pushCleanedMessage(speaker, linesArray) {
-    const currentMyName = myNameInput.value.trim();
-    
-    // 각 본문 라인들 중 혹시 섞여 들어간 프로필 찌꺼기나 빈 문자열 2차 정제
-    let filteredLines = linesArray.map(l => {
-        let temp = l.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
-        // 화자 이름이 단독으로 본문 줄에 들어간 노이즈 제거
-        if (temp === "알레한드로 골리코프" || temp === "토르벤 파트로소프" || (currentMyName && temp === currentMyName)) {
-            return "";
-        }
-        return temp;
-    }).filter(l => l.length > 0);
-
-    if (filteredLines.length > 0) {
-        let finalBody = filteredLines.join(' ');
-        
-        // 멘션 기호 가독성 포맷 정리 (중복 공백 제거)
-        finalBody = finalBody.replace(/\s+/g, ' ').trim();
-        
-        allMessages.push({
-            speaker: speaker,
-            message: finalBody
-        });
     }
 }
 
@@ -250,7 +221,7 @@ function renderChat() {
         
         let displayMsg = msg.message;
         
-        // 본문 안의 @멘션 기호 파란색 하이라이팅
+        // 멘션(@이름) 파란색 강조 처리
         displayMsg = displayMsg.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
 
         const messageElement = document.createElement('div');
