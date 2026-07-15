@@ -1,7 +1,8 @@
-// 1. PDF.js Worker 버전을 라이브러리와 동일한 3.4.120으로 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 const fileInput = document.getElementById('pdf-upload');
+const uploadLabel = document.getElementById('upload-label');
+const cancelBtn = document.getElementById('btn-cancel');
 const fileNameDisplay = document.getElementById('file-name');
 const chatContainer = document.getElementById('chat-container');
 const exportBtn = document.getElementById('btn-export');
@@ -12,27 +13,72 @@ let allMessages = [];
 let detectedSpeakers = new Set(); 
 let rawExtractedText = ""; 
 
-// 파일 업로드 이벤트 핸들러
+let isCancelled = false;
+let currentWorker = null; 
+
+function setProcessingState(processing) {
+    if (processing) {
+        uploadLabel.style.display = 'none';
+        cancelBtn.style.display = 'inline-block';
+        exportBtn.disabled = true;
+        isCancelled = false;
+    } else {
+        uploadLabel.style.display = 'inline-block';
+        cancelBtn.style.display = 'none';
+    }
+}
+
+function resetToInitial(message = "파일 분석이 취소되었습니다.") {
+    fileInput.value = "";
+    fileNameDisplay.textContent = "선택된 파일 없음";
+    chatContainer.innerHTML = `<div class="system-message">${message}</div>`;
+    speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
+    exportBtn.disabled = true;
+    setProcessingState(false);
+    currentWorker = null;
+}
+
+cancelBtn.addEventListener('click', async function() {
+    isCancelled = true;
+    if (currentWorker) {
+        try {
+            await currentWorker.terminate(); 
+        } catch (e) {
+            console.log("워커 종료 중 예외 발생: ", e);
+        }
+    }
+    resetToInitial("⚠️ 파일 분석이 사용자에 의해 즉시 취소되었습니다.");
+});
+
 fileInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     fileNameDisplay.textContent = file.name;
     chatContainer.innerHTML = '<div class="system-message">분석을 준비하고 있습니다...</div>';
-    exportBtn.disabled = true;
-    speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
+    setProcessingState(true);
 
     const fileReader = new FileReader();
 
     if (file.type.startsWith('image/')) {
         fileReader.onload = async function() {
             try {
-                chatContainer.innerHTML = '<div class="system-message">이미지 분석 중 (OCR)... <br><span style="font-size: 11px; opacity: 0.8;">잠시만 기다려주세요.</span></div>';
-                const result = await Tesseract.recognize(this.result, 'kor+eng');
+                if (isCancelled) return;
+                chatContainer.innerHTML = '<div class="system-message">이미지 분석 중 (OCR)... <br><span style="font-size: 11px; opacity: 0.8;">언제든 취소할 수 있습니다.</span></div>';
+                
+                currentWorker = await Tesseract.createWorker('kor+eng');
+                if (isCancelled) { currentWorker.terminate(); return; }
+                
+                const result = await currentWorker.recognize(this.result);
+                if (isCancelled) { currentWorker.terminate(); return; }
+                
                 rawExtractedText = result.data.text;
+                await currentWorker.terminate();
+                currentWorker = null;
+                
                 processTextAndRender();
             } catch (err) {
-                showError("이미지 분석 실패: " + err.message);
+                if (!isCancelled) showError("이미지 분석 실패: " + err.message);
             }
         };
         fileReader.readAsDataURL(file);
@@ -40,15 +86,22 @@ fileInput.addEventListener('change', function(e) {
     else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
         fileReader.onload = async function() {
             try {
+                if (isCancelled) return;
                 chatContainer.innerHTML = '<div class="system-message">PDF 데이터를 스캔하는 중...</div>';
+                
                 const typedarray = new Uint8Array(this.result);
                 const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
                 let maxPages = pdf.numPages;
                 let combinedText = "";
 
+                currentWorker = await Tesseract.createWorker('kor+eng');
+
                 for (let i = 1; i <= maxPages; i++) {
+                    if (isCancelled) { currentWorker.terminate(); return; }
+                    
                     chatContainer.innerHTML = `<div class="system-message">PDF ${i} / ${maxPages} 페이지 가상 이미지화 중...</div>`;
                     const page = await pdf.getPage(i);
+                    
                     const viewport = page.getViewport({ scale: 2.5 });
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -56,25 +109,34 @@ fileInput.addEventListener('change', function(e) {
                     canvas.width = viewport.width;
 
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    
+                    if (isCancelled) { currentWorker.terminate(); return; }
                     chatContainer.innerHTML = `<div class="system-message">글자 추출 판독 중 (OCR): ${i} / ${maxPages} 페이지...</div>`;
                     
-                    const result = await Tesseract.recognize(canvas, 'kor+eng');
+                    const result = await currentWorker.recognize(canvas);
                     combinedText += result.data.text + "\n";
                 }
 
+                if (isCancelled) { currentWorker.terminate(); return; }
                 rawExtractedText = combinedText;
+                
+                await currentWorker.terminate();
+                currentWorker = null;
+                
                 processTextAndRender();
             } catch (error) {
-                showError("PDF 구조 분석 실패: " + error.message);
+                if (!isCancelled) showError("PDF 구조 분석 실패: " + error.message);
             }
         };
         fileReader.readAsArrayBuffer(file);
     } else {
-        showError("PDF 또는 이미지 파일(.png, .jpg)만 지원합니다.");
+        showError("PDF 또는 이미지 파일만 지원합니다.");
+        setProcessingState(false);
     }
 });
 
 function processTextAndRender() {
+    setProcessingState(false); 
     parseMessages(rawExtractedText);
     
     if (allMessages.length === 0) {
@@ -87,7 +149,7 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
-// 문장 오인 버그를 잡은 핵심 파싱 엔진
+// 완전히 새로 뜯어고친 파싱 엔진 (외계어 차단 및 이름 정밀 검증)
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
@@ -97,16 +159,25 @@ function parseMessages(text) {
     let currentSpeaker = "";
     let currentMessageAccumulator = [];
 
-    // 문장이 이름으로 오인되는 것을 방지하기 위한 제외 단어/조사 패턴
-    const blacklistWords = ["은", "는", "이", "가", "을", "를", "의", "에서", "합니다", "입니다", "있다", "없다", "요", "과", "와"];
+    // 대화방 내에 유입되면 안 되는 명백한 특수문자/외계어 패턴
+    const garbagePattern = /^[\s\d`~!@#$%^&*()_+=\-[\]\\|{};:'",.<>/?·•¥^/\\—]+$/;
+    
+    // 절대 이름이 될 수 없는 밴드 UI 단어 및 본문 파편용 블랙리스트
+    const invalidNameTokens = ["번역", "답글", "글쓰기", "시간", "보기", "표정", "전체", "이미지", "저장", "선택", "등록", "댓글", "좋아요"];
+    const blacklistSuffixes = ["은", "는", "이", "가", "을", "를", "의", "에서", "합니다", "입니다", "있다", "없다", "요", "과", "와", "해", "해라", "한다"];
 
     lines.forEach(line => {
-        const trimmed = line.trim();
+        let trimmed = line.trim();
         if (!trimmed) return;
 
-        // 1. 이름 매칭 규칙 엄격화: 2~8자 사이의 순수 알파벳/한글/공백만 허용하고 특수문자나 문장형 어미 차단
-        // 뒤에 조사나 문장형 어미가 붙어있으면 이름이 아니라 대화 본문 문장으로 판정합니다.
-        const namePattern = /^([가-힣a-zA-Z\s]{2,8})$/; 
+        // 1. OCR 쓰레기 문자열 전처리 필터링
+        if (garbagePattern.test(trimmed) || trimmed.length <= 1) {
+            return; 
+        }
+
+        // 2. 이름 후보군 추출 및 엄격한 검증
+        // 순수한 한국어 또는 영어 알파벳으로만 구성된 2~8자 단어
+        const namePattern = /^([가-힣a-zA-Z\s]{2,8})$/;
         const match = trimmed.match(namePattern);
 
         let isName = false;
@@ -114,36 +185,42 @@ function parseMessages(text) {
 
         if (match) {
             RawName = match[1].trim();
-            // 단어 뒤에 명백한 조사나 어미가 붙어있는지 더블 체크
-            const hasBlacklist = blacklistWords.some(word => {
-                return RawName.endsWith(word) && RawName.length > word.length;
+            
+            // 이름 뒤에 동사 어미나 조사가 붙어있는지 엄밀히 판단
+            const hasInvalidSuffix = blacklistSuffixes.some(suffix => {
+                return RawName.endsWith(suffix) && RawName.length > suffix.length;
             });
-            // 대화방 UI용 텍스트 필터링
-            const isUiText = (RawName === "번역 보기" || RawName === "답글쓰기" || RawName === "전체 대화" || RawName === "이미지 저장");
+            // 금지된 단어가 닉네임에 섞여 있는지 판단
+            const hasInvalidToken = invalidNameTokens.some(token => RawName.includes(token));
 
-            if (!hasBlacklist && !isUiText) {
+            if (!hasInvalidSuffix && !hasInvalidToken) {
                 isName = true;
             }
         }
 
-        // 2. 강제 닉네임 매칭 보정 규칙 (오타 대응 포함)
+        // 3. 고정 등장인물 이름 보정 로직 (오타 구제)
         if (!isName) {
             if (trimmed.includes('알레한드로') || trimmed.includes('골리코프')) {
                 isName = true; RawName = '알레한드로 골리코프';
             } else if (trimmed.includes('토르벤') || trimmed.includes('파트로소프')) {
                 isName = true; RawName = '토르벤 파트로소프';
-            } else if (currentMyName && trimmed.includes(currentMyName)) {
+            } else if (currentMyName && trimmed === currentMyName) {
                 isName = true; RawName = currentMyName;
             }
         }
 
-        // 3. 이름으로 최종 판정된 경우 분기 처리
+        // 4. 이름 분기 및 본문 누적 처리
         if (isName) {
+            // 새 화자가 나타나면 기존에 쌓아두었던 대화 저장
             if (currentSpeaker && currentMessageAccumulator.length > 0) {
-                saveMessage(currentSpeaker, currentMessageAccumulator.join(' '));
+                let textBlock = currentMessageAccumulator.join(' ').trim();
+                // 저장하려는 본문이 외계어 덩어리라면 저장하지 않고 버림
+                if (textBlock && !garbagePattern.test(textBlock) && textBlock.length > 1) {
+                    saveMessage(currentSpeaker, textBlock);
+                }
             }
 
-            // 이름 맵핑 정규화
+            // 확정된 대화 참여자 이름 표준화 mapping
             if (currentMyName && (RawName.includes(currentMyName.substring(0, 2)) || RawName.includes(currentMyName))) {
                 currentSpeaker = currentMyName;
             } else if (RawName.includes('알레한드로')) {
@@ -154,35 +231,40 @@ function parseMessages(text) {
                 currentSpeaker = RawName;
             }
 
-            // 드롭다운 등록 (본인 및 시스템 멘트 제외)
             if (currentSpeaker !== currentMyName && currentSpeaker !== "시스템") {
                 detectedSpeakers.add(currentSpeaker);
             }
 
             currentMessageAccumulator = []; 
         } else {
-            // 본문 내용 쌓기
-            if (trimmed === "번역 보기" || trimmed === "답글쓰기" || trimmed === "글쓰기" || trimmed === "시간" || trimmed === "보기" || trimmed.includes("표정짓기")) {
-                return; 
+            // 본문 내용 찌꺼기 정제 후 스택에 누적
+            // 밴드 UI 요소들 2차 제거
+            if (invalidNameTokens.some(t => trimmed.includes(t)) || trimmed.includes("표정짓기")) {
+                return;
             }
-
-            if (currentSpeaker) {
+            
+            // 메시지 내부에 포함된 잔여 특수문자 가볍게 정리
+            trimmed = trimmed.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
+            
+            if (currentSpeaker && trimmed) {
                 currentMessageAccumulator.push(trimmed);
             }
         }
     });
 
+    // 마지막 남은 잔여 대화 찌꺼기 최종 커밋
     if (currentSpeaker && currentMessageAccumulator.length > 0) {
-        saveMessage(currentSpeaker, currentMessageAccumulator.join(' '));
+        let textBlock = currentMessageAccumulator.join(' ').trim();
+        if (textBlock && !garbagePattern.test(textBlock) && textBlock.length > 1) {
+            saveMessage(currentSpeaker, textBlock);
+        }
     }
 }
 
 function saveMessage(speaker, text) {
-    let cleanText = text.trim();
-    if (!cleanText) return;
     allMessages.push({
         speaker: speaker,
-        message: cleanText
+        message: text
     });
 }
 
@@ -191,7 +273,8 @@ function updateSpeakerDropdown() {
     speakerSelect.innerHTML = '<option value="all">전체 대화</option>';
     
     detectedSpeakers.forEach(speaker => {
-        if (speaker !== currentMyName && speaker.length <= 8) { // 비정상적으로 긴 이름 차단
+        // 엄격한 드롭다운 정화: 8자 초과 혹은 쓰레기 토큰 유입 원천 차단
+        if (speaker !== currentMyName && speaker.length <= 8) {
             const option = document.createElement('option');
             option.value = speaker;
             option.textContent = speaker;
@@ -258,6 +341,7 @@ exportBtn.addEventListener('click', function() {
 });
 
 function showError(message) {
+    setProcessingState(false);
     console.error(message);
     chatContainer.innerHTML = `<div class="system-message" style="background-color: #e53e3e; padding: 12px; line-height: 1.5;">⚠️ ${message}</div>`;
 }
