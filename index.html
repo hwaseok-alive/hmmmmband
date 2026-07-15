@@ -1,788 +1,127 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>밴드 PDF/텍스트 ➡️ 카카오톡 대화방 변환기</title>
-  <!-- PDF.js for client-side PDF text extraction -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <!-- html2pdf.js for generating styled PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
-  <style>
-    :root {
-      --primary-color: #3b5998;
-      --accent-color: #fee500;
-      --bg-color: #f5f6f8;
-      --chat-bg: #bacee0;
-      --border-color: #e4e6eb;
-    }
+// 1. PDF.js 라이브러리 구동을 위한 Worker 경로 설정 (CDN 동일 버전 고정)
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    * {
-      box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
+// 엘리먼트 가져오기
+const fileInput = document.getElementById('pdf-upload');
+const fileNameDisplay = document.getElementById('file-name');
+const chatContainer = document.getElementById('chat-container');
 
-    body {
-      background-color: var(--bg-color);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
+// 2. 파일이 선택되었을 때 실행되는 이벤트
+fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    /* Sidebar controls */
-    #sidebar {
-      width: 420px;
-      background: white;
-      border-right: 1px solid var(--border-color);
-      padding: 25px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      overflow-y: auto;
-      height: 100%;
-    }
-
-    .app-title {
-      margin: 0 0 5px 0;
-      font-size: 20px;
-      font-weight: 800;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .app-subtitle {
-      font-size: 13px;
-      color: #666;
-      margin: 0 0 15px 0;
-      line-height: 1.4;
-    }
-
-    .section-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #444;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .input-field {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ccd0d5;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: border-color 0.2s;
-    }
-
-    .input-field:focus {
-      outline: none;
-      border-color: var(--primary-color);
-    }
-
-    textarea.input-field {
-      height: 100px;
-      resize: none;
-    }
-
-    /* File upload styling */
-    .file-dropzone {
-      border: 2px dashed #ccd0d5;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      background: #fafafa;
-      transition: background 0.2s, border-color 0.2s;
-    }
-
-    .file-dropzone:hover {
-      background: #f0f2f5;
-      border-color: var(--primary-color);
-    }
-
-    .file-dropzone p {
-      margin: 0;
-      font-size: 13px;
-      color: #65676b;
-    }
-
-    .file-dropzone input {
-      display: none;
-    }
-
-    /* Dynamic profile lists */
-    .profile-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #f7f8fa;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      max-height: 250px;
-      overflow-y: auto;
-    }
-
-    .profile-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: space-between;
-      background: white;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #e4e6eb;
-    }
-
-    .profile-item-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .profile-item-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .profile-name-area {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .profile-badge {
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 10px;
-      font-weight: bold;
-    }
-
-    .profile-badge.me {
-      background-color: #fee500;
-      color: #3c1e1e;
-    }
-
-    .profile-badge.other {
-      background-color: #e4e6eb;
-      color: #444;
-    }
-
-    .avatar-preview {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #ddd;
-      object-fit: cover;
-      border: 1px solid #ccc;
-    }
-
-    .file-select-btn {
-      font-size: 11px;
-      padding: 4px 8px;
-      background: #fff;
-      border: 1px solid #ccd0d5;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    /* Action Buttons */
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: auto;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-primary {
-      background-color: #0084ff;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background-color: #006dd6;
-    }
-
-    .btn-success {
-      background-color: #42b72a;
-      color: white;
-    }
-
-    .btn-success:hover {
-      background-color: #369822;
-    }
-
-    /* Chat Preview Window */
-    #preview-area {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      overflow-y: auto;
-      height: 100%;
-    }
-
-    /* Phone screen outer box */
-    .phone-container {
-      width: 420px;
-      height: 780px;
-      background-color: var(--chat-bg);
-      border-radius: 30px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.15);
-      border: 8px solid #222;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Status bar mock */
-    .phone-status-bar {
-      height: 25px;
-      background: rgba(0, 0, 0, 0.05);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 20px;
-      font-size: 11px;
-      color: #333;
-      font-weight: 600;
-    }
-
-    /* Chat room header */
-    .chat-header {
-      height: 50px;
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      padding: 0 15px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      font-weight: bold;
-      color: #1c1e21;
-      font-size: 15px;
-    }
-
-    /* Chat scroll area */
-    .chat-messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Hide scrollbar for clean export */
-    .chat-messages-container::-webkit-scrollbar {
-      display: none;
-    }
-
-    /* Chat Message Bubbles */
-    .chat-item {
-      display: flex;
-      align-items: flex-start;
-      max-width: 85%;
-      width: 100%;
-    }
-
-    /* Left Chat (Other users) */
-    .chat-item.other {
-      align-self: flex-start;
-      margin-right: auto;
-    }
-
-    /* Right Chat (Me) */
-    .chat-item.me {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-      margin-left: auto;
-    }
-
-    .chat-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin: 0 8px;
-      background-color: #ddd;
-      border: 1px solid rgba(0,0,0,0.05);
-      flex-shrink: 0;
-    }
-
-    .chat-content {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chat-item.me .chat-content {
-      align-items: flex-end;
-    }
-
-    .chat-sender-name {
-      font-size: 11px;
-      color: #555;
-      margin-bottom: 3px;
-      margin-left: 2px;
-      font-weight: 600;
-    }
-
-    .chat-bubble-wrapper {
-      display: flex;
-      align-items: flex-end;
-      gap: 5px;
-    }
-
-    .chat-item.me .chat-bubble-wrapper {
-      flex-direction: row-reverse;
-    }
-
-    .chat-bubble {
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      line-height: 1.4;
-      word-break: break-all;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .chat-item.other .chat-bubble {
-      background-color: white;
-      color: black;
-      border-top-left-radius: 2px;
-    }
-
-    .chat-item.me .chat-bubble {
-      background-color: var(--accent-color);
-      color: #1a1a1a;
-      border-top-right-radius: 2px;
-    }
-
-    .chat-time {
-      font-size: 9px;
-      color: #777;
-      margin-bottom: 2px;
-      white-space: nowrap;
-    }
-
-    /* Instructions / Empty state */
-    .empty-state {
-      text-align: center;
-      color: #888;
-      font-size: 13px;
-      margin: auto;
-      padding: 20px;
-      line-height: 1.5;
-    }
-
-    /* Loading Spinner */
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid var(--primary-color);
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    #loading-overlay {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      color: #555;
-      margin-top: 10px;
-    }
-
-    /* Checkbox list styling */
-    .user-toggle-checkbox {
-      margin-right: 8px;
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Sidebar -->
-  <div id="sidebar">
-    <div>
-      <h1 class="app-title">💬 밴드 대화창 파서</h1>
-      <p class="app-subtitle">밴드 댓글 캡처 PDF를 업로드하거나 댓글 텍스트를 복사해 붙여넣으면 나와 상대를 자동 식별하여 카카오톡 형태의 세련된 대화방으로 재구성합니다.</p>
-    </div>
-
-    <!-- Step 1: Upload PDF or Paste Text -->
-    <div class="form-group">
-      <span class="section-title">1. 밴드 PDF 업로드 또는 텍스트 입력</span>
-      <div class="file-dropzone" onclick="document.getElementById('pdf-file').click()">
-        <p>📄 여기에 <b>밴드 PDF 파일</b>을 드래그하거나 클릭하여 업로드</p>
-        <input type="file" id="pdf-file" accept="application/pdf" onchange="handlePDFUpload(event)">
-      </div>
-      <div id="loading-overlay"><span class="spinner"></span>PDF 텍스트를 분석 중입니다...</div>
-      
-      <div style="text-align: center; margin: 10px 0; color: #aaa; font-size: 12px; font-weight: bold;">OR</div>
-      
-      <textarea id="raw-text" class="input-field" placeholder="여기에 복사한 밴드 댓글 텍스트를 직접 붙여넣으셔도 됩니다."></textarea>
-    </div>
-
-    <!-- Step 2: Name Identification -->
-    <div class="form-group">
-      <span class="section-title">2. 인물 역할 설정</span>
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div>
-          <label style="font-size: 11px; font-weight: bold; color: #555;">🙋‍♂️ '나'의 캐릭터 이름 (우측 배치)</label>
-          <input type="text" id="my-name" class="input-field" value="콘스탄틴 하벨" placeholder="예: 콘스탄틴 하벨" oninput="parseAndRender()">
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 3: Automatic detected members and Profile pictures with filter option -->
-    <div class="form-group">
-      <span class="section-title">
-        3. 참여자 필터 및 프로필 설정
-        <span style="font-size: 11px; font-weight: normal; color: #777;">(체크된 사람만 대화 표시)</span>
-      </span>
-      <div class="profile-list" id="profile-list">
-        <div style="text-align: center; color: #888; font-size: 12px; padding: 10px;">분석을 완료하면 여기에 필터 및 프로필 설정 칸이 생성됩니다.</div>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="btn-group">
-      <button class="btn btn-primary" onclick="parseAndRender()">🔄 대화창 다시 생성</button>
-      <button class="btn btn-success" onclick="downloadChatPDF()">📥 대화창 PDF 저장</button>
-    </div>
-  </div>
-
-  <!-- Preview Panel -->
-  <div id="preview-area">
-    <div class="phone-container" id="capture-area">
-      <!-- Status Bar Mock -->
-      <div class="phone-status-bar">
-        <span>12:00</span>
-        <span style="display: flex; gap: 4px; align-items: center;">📶 🔋 100%</span>
-      </div>
-      <!-- Header -->
-      <div class="chat-header" id="chat-title">대화방</div>
-      <!-- Message Area -->
-      <div class="chat-messages-container" id="chat-box">
-        <div class="empty-state">
-          <h3>반갑습니다! 👋</h3>
-          <p>왼쪽 패널에 밴드 PDF를 업로드하거나 댓글 내용을 입력해 보세요.<br><br><b>콘스탄틴 하벨</b> 님의 말은 자동으로 오른쪽 노란 말풍선에 배치되며, 다른 참가자들은 왼쪽 흰색 말풍선에 순서대로 자동 배치됩니다.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Global state
-    let profileImages = {};    // Name -> base64 string
-    let messages = [];         // Parsed chat list: { sender: string, text: string, isMe: boolean, timeStr: string }
-    let activeUserFilters = {}; // Name -> boolean (true: show, false: hide)
+    // 선택된 파일 이름 화면에 표시
+    fileNameDisplay.textContent = file.name;
     
-    // Set PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    // 로딩 상태 표시
+    chatContainer.innerHTML = '<div class="system-message">PDF 문서 내용을 분석하고 있습니다. 잠시만 기다려주세요...</div>';
 
-    // Handle PDF File Upload and text extraction
-    async function handlePDFUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    const fileReader = new FileReader();
+    
+    fileReader.onload = function() {
+        const typedarray = new Uint8Array(this.result);
 
-      document.getElementById('loading-overlay').style.display = 'flex';
-      
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = "";
+        // PDF 문서 열기
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+            let maxPages = pdf.numPages;
+            let countPromises = [];
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          // Merge text items from PDF page
-          const pageText = textContent.items.map(item => item.str).join('\n');
-          fullText += pageText + "\n";
-        }
+            // 각 페이지 돌면서 텍스트 정보 추출하기
+            for (let i = 1; i <= maxPages; i++) {
+                countPromises.push(
+                    pdf.getPage(i).then(function(page) {
+                        return page.getTextContent().then(function(textContent) {
+                            // 페이지 내의 개별 텍스트 조각들을 하나의 문장으로 병합
+                            return textContent.items.map(item => item.str).join(' ');
+                        });
+                    })
+                );
+            }
 
-        // Standardize newline structures from PDF extracted formats
-        let cleanedText = fullText
-          .replace(/\\n/g, '\n')
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .join('\n');
+            // 모든 페이지의 텍스트가 전부 수집되면 실행
+            Promise.all(countPromises).then(function(pageTexts) {
+                const fullText = pageTexts.join('\n');
+                
+                if (!fullText.trim()) {
+                    throw new Error("PDF 내부에서 추출된 텍스트가 없습니다. (이미지 전용 PDF일 가능성이 있습니다.)");
+                }
 
-        document.getElementById('raw-text').value = cleanedText;
-        parseAndRender();
-      } catch (error) {
-        alert("PDF 분석 중 오류가 발생했습니다. 올바른 PDF 파일인지 확인해 주세요.");
-        console.error(error);
-      } finally {
-        document.getElementById('loading-overlay').style.display = 'none';
-      }
-    }
-
-    // Dynamic parser
-    function parseAndRender() {
-      const rawText = document.getElementById('raw-text').value;
-      const myName = document.getElementById('my-name').value.trim();
-
-      if (!rawText.trim()) return;
-
-      // Clean lines
-      const rawLines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      messages = [];
-      let detectedUsers = new Set();
-      
-      let currentSender = '';
-      let currentText = '';
-      let currentTime = '오후 12:00'; // fallback time
-
-      // Regular Expressions for parsing
-      // Pattern for: Name Age, Role (e.g. "엘라 코르핀 32, 강력반")
-      const userHeaderPattern = /^([가-힣a-zA-Z\s]+)\s+(\d+.*)/;
-      const timePattern = /^(\d+분 전|\d+시간 전|어제|\d+일 전|방금)/;
-
-      for (let i = 0; i < rawLines.length; i++) {
-        const line = rawLines[i];
-
-        // Skip System/UI components of BAND
-        if (
-          line === "번역 보기" || 
-          line === "표정짓기" || 
-          line === "답글쓰기" || 
-          line.startsWith("좋아요") || 
-          line.startsWith("표정") ||
-          line === "댓글" ||
-          line === "공유하기"
-        ) {
-          continue;
-        }
-
-        // Check if line represents a user header
-        const headerMatch = line.match(userHeaderPattern);
-        if (headerMatch) {
-          // If we had a previous message pending, commit it first
-          if (currentSender && currentText) {
-            messages.push({
-              sender: currentSender,
-              text: currentText.trim(),
-              isMe: currentSender.includes(myName) || myName.includes(currentSender),
-              timeStr: currentTime
+                // 대화창에 그리기 함수 실행
+                parseAndRenderChat(fullText);
+            }).catch(function(err) {
+                showError("텍스트 추출 실패: " + err.message);
             });
-            currentText = '';
-          }
-          currentSender = headerMatch[1].trim();
-          detectedUsers.add(currentSender);
-          continue;
-        }
 
-        // Check if line represents time
-        if (timePattern.test(line) || line.includes("분 전") || line.includes("시간 전") || line.includes("일 전")) {
-          currentTime = line;
-          continue;
-        }
-
-        // Otherwise, it is message body content
-        if (currentSender) {
-          currentText += (currentText ? " " : "") + line;
-        }
-      }
-
-      // Append last message
-      if (currentSender && currentText) {
-        messages.push({
-          sender: currentSender,
-          text: currentText.trim(),
-          isMe: currentSender.includes(myName) || myName.includes(currentSender),
-          timeStr: currentTime
+        }).catch(function(error) {
+            showError("PDF 문서 로딩 실패: " + error.message);
         });
-      }
+    };
 
-      // Initialize filter state for newly detected users if not already set
-      detectedUsers.forEach(user => {
-        if (activeUserFilters[user] === undefined) {
-          activeUserFilters[user] = true; // Default to shown
+    // 파일 로드 중 오류 대처
+    fileReader.onerror = function() {
+        showError("파일을 읽어오는 중에 실패했습니다.");
+    };
+
+    // 바이너리 데이터로 파일 읽기 시작
+    fileReader.readAsArrayBuffer(file);
+});
+
+// 3. 추출된 전체 텍스트에서 '작성자'와 '내용' 구분하여 대화창 생성하는 로직
+function parseAndRenderChat(text) {
+    chatContainer.innerHTML = ''; // 화면 비우기
+
+    // 줄 단위로 데이터 쪼개기
+    const lines = text.split('\n');
+    let hasMessages = false;
+
+    lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return;
+
+        // 예시 구분 규칙: 이름과 본문 사이에 콜론(:)이 있는 경우
+        // 규칙은 PDF 파일 텍스트 구조에 맞추어 커스텀할 수 있습니다.
+        if (trimmedLine.includes(':')) {
+            const separatorIndex = trimmedLine.indexOf(':');
+            const speaker = trimmedLine.substring(0, separatorIndex).trim();
+            const message = trimmedLine.substring(separatorIndex + 1).trim();
+
+            if (speaker && message) {
+                appendMessageHTML(speaker, message);
+                hasMessages = true;
+            }
+        } else {
+            // 구분이 모호한 줄은 일반 내용 혹은 시스템 알림으로 표시
+            appendMessageHTML("이름 없음", trimmedLine);
+            hasMessages = true;
         }
-      });
+    });
 
-      // Update User lists UI
-      renderProfileList(Array.from(detectedUsers), myName);
-      // Update Chat Room UI
-      renderChatRoom(myName);
+    if (!hasMessages) {
+        chatContainer.innerHTML = '<div class="system-message">텍스트 분석에 실패했습니다. 형식 일치 여부를 확인해 주세요.</div>';
     }
+}
 
-    // Render configuration fields with toggle switches
-    function renderProfileList(users, myName) {
-      const container = document.getElementById('profile-list');
-      container.innerHTML = '';
+// 4. 대화창에 말풍선 엘리먼트 추가
+function appendMessageHTML(speaker, message) {
+    const messageElement = document.createElement('div');
+    messageElement.className = 'message-item';
+    
+    messageElement.innerHTML = `
+        <div class="speaker-name"><strong>${speaker}</strong></div>
+        <div class="message-content">${message}</div>
+    `;
+    
+    chatContainer.appendChild(messageElement);
+    
+    // 새 메시지가 들어오면 스크롤 제일 하단으로 이동
+    const chatWrapper = document.querySelector('.chat-wrapper');
+    chatWrapper.scrollTop = chatWrapper.scrollHeight;
+}
 
-      if (users.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: #888; font-size: 12px; padding: 10px;">참여자가 감지되지 않았습니다.</div>`;
-        return;
-      }
-
-      users.forEach(user => {
-        const isMe = user.includes(myName) || myName.includes(user);
-        const item = document.createElement('div');
-        item.className = 'profile-item';
-        
-        const avatarSrc = profileImages[user] || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23ccc"/></svg>';
-        const isChecked = activeUserFilters[user] !== false; // defaults to true
-
-        item.innerHTML = `
-          <div class="profile-item-left">
-            <!-- Filter checkbox -->
-            <input type="checkbox" class="user-toggle-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleUserFilter('${user}', this.checked)">
-            <img class="avatar-preview" id="preview-${user}" src="${avatarSrc}">
-            <div class="profile-item-info">
-              <div class="profile-name-area">
-                <span>${user}</span>
-                <span class="profile-badge ${isMe ? 'me' : 'other'}">${isMe ? '나' : '상대'}</span>
-              </div>
-            </div>
-          </div>
-          <label class="file-select-btn">
-            사진 선택
-            <input type="file" accept="image/*" style="display:none;" onchange="updateProfilePhoto(event, '${user}')">
-          </label>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    // Toggle user filter state
-    function toggleUserFilter(username, isChecked) {
-      activeUserFilters[username] = isChecked;
-      const myName = document.getElementById('my-name').value.trim();
-      renderChatRoom(myName);
-    }
-
-    // Cache photo uploads as base64
-    function updateProfilePhoto(event, username) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          profileImages[username] = e.target.result;
-          document.getElementById(`preview-${username}`).src = e.target.result;
-          const myName = document.getElementById('my-name').value.trim();
-          renderChatRoom(myName); // Re-render chat room with updated photo
-        }
-        reader.readAsDataURL(file);
-      }
-    }
-
-    // Draw the Mock Chat Room
-    function renderChatRoom(myName) {
-      const chatBox = document.getElementById('chat-box');
-      chatBox.innerHTML = '';
-
-      // Filter messages based on checkboxes
-      const filteredMessages = messages.filter(msg => activeUserFilters[msg.sender] !== false);
-
-      if (filteredMessages.length === 0) {
-        chatBox.innerHTML = `
-          <div class="empty-state">
-            <p>보여줄 대화 내용이 없습니다.<br>왼쪽 필터에서 대화를 표시할 사람을 선택해 주세요.</p>
-          </div>
-        `;
-        return;
-      }
-
-      // Update Header Title using only ACTIVE users
-      const activePartners = Array.from(new Set(
-        filteredMessages
-          .map(m => m.sender)
-          .filter(name => !name.includes(myName) && !myName.includes(name))
-      ));
-      
-      const titleArea = document.getElementById('chat-title');
-      if (activePartners.length > 0) {
-        titleArea.innerText = `대화방 (${activePartners.join(', ')})`;
-      } else {
-        titleArea.innerText = '나의 혼잣말 대화방';
-      }
-
-      filteredMessages.forEach(msg => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `chat-item ${msg.isMe ? 'me' : 'other'}`;
-
-        const avatarSrc = profileImages[msg.sender] || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="%23ccc"/></svg>';
-
-        chatItem.innerHTML = `
-          <img class="chat-avatar" src="${avatarSrc}">
-          <div class="chat-content">
-            ${msg.isMe ? '' : `<span class="chat-sender-name">${msg.sender}</span>`}
-            <div class="chat-bubble-wrapper">
-              <div class="chat-bubble">${msg.text}</div>
-              <span class="chat-time">${msg.timeStr}</span>
-            </div>
-          </div>
-        `;
-        chatBox.appendChild(chatItem);
-      });
-
-      // Auto scroll to bottom
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    // Export preview-area as a PDF using html2pdf.js
-    function downloadChatPDF() {
-      const element = document.getElementById('capture-area');
-      const myName = document.getElementById('my-name').value.trim();
-      const filename = `${myName || 'band'}_chat_history.pdf`;
-
-      const opt = {
-        margin:       [10, 10, 10, 10],
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      html2pdf().set(opt).from(element).save();
-    }
-  </script>
-</body>
-</html>
+// 에러 발생 시 공통 처리 함수
+function showError(message) {
+    console.error(message);
+    chatContainer.innerHTML = `<div class="system-message" style="background-color: #e53e3e;">⚠️ ${message}</div>`;
+    alert(message);
+}
