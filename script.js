@@ -124,7 +124,7 @@ function processTextAndRender() {
     exportBtn.disabled = false;
 }
 
-// 🛠️ 밴드 텍스트 추출용 단어 쪼개기 매커니즘
+// 🛠️ 한 줄씩 분석하는 초정밀 화자/본문 스캐너
 function parseMessages(text) {
     allMessages = [];
     detectedSpeakers.clear();
@@ -132,63 +132,88 @@ function parseMessages(text) {
     const currentMyName = myNameInput.value.trim();
     if (!currentMyName) return;
 
-    // 화자 판별 리스트
+    // 타겟팅할 진짜 화자 목록
     const targetSpeakers = ['알레한드로 골리코프', '토르벤 파트로소프', currentMyName];
 
-    // 전체 텍스트에서 밴드 기능성 UI 단어 및 시간 정보 사전에 삭제
-    let cleanedText = text.split('\n')
-        .filter(line => {
-            let l = line.trim();
-            if (l.includes("표정짓기") || l.includes("답글쓰기") || l.includes("번역 보기") || l.includes("좋아요")) return false;
-            if (/^\d+\s*(시간|분|일)\s*전/.test(l)) return false;
-            return true;
-        })
-        .join('\n');
+    // 줄 단위 쪼개기 및 1차 가비지 필터링
+    const lines = text.split('\n').map(line => line.trim()).filter(line => {
+        if (!line) return false;
+        // 밴드 UI 기능성 노이즈 완전 배제
+        if (line.includes("표정짓기") || line.includes("답글쓰기") || line.includes("번역 보기") || line.includes("좋아요")) return false;
+        if (/^\d+\s*(시간|분|일)\s*전/.test(line)) return false; // 시간 라인 스킵
+        return true;
+    });
 
-    // 진짜 프로필 헤더라인을 찾기 위한 정규식 패턴 생성
-    // 본문 안의 멘션(@)은 제외하고, 줄 시작 부분에 이름이 단독 혹은 나이/직급과 오는 패턴 매칭
-    const targetPattern = new RegExp(`(^|\\n)(알레한드로 골리코프|토르벤 파트로소프|${currentMyName})[^\\n@]*`, 'g');
+    let currentSpeaker = "";
+    let currentMessageAccumulator = [];
 
-    let match;
-    let matches = [];
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        let isSpeakerHeader = false;
+        let matchedName = "";
 
-    // 1단계: 전체 텍스트에서 진짜 이름이 들어간 헤더 위치를 전부 탐색
-    while ((match = targetPattern.exec(cleanedText)) !== null) {
-        matches.push({
-            index: match.index,
-            speaker: match[2],
-            headerLength: match[0].length
-        });
-    }
-
-    // 2단계: 찾아낸 화자 위치 기점으로 본문 덩어리 슬라이싱
-    for (let i = 0; i < matches.length; i++) {
-        let currentMatch = matches[i];
-        let speaker = currentMatch.speaker;
-        
-        // 본문 시작점 계산 (이름 헤더 바로 뒷부분부터)
-        let textStart = currentMatch.index + currentMatch.headerLength;
-        // 본문 끝점 계산 (다음 화자 헤더가 나타나기 전까지 혹은 텍스트 끝까지)
-        let textEnd = (i + 1 < matches.length) ? matches[i + 1].index : cleanedText.length;
-
-        let messageBody = cleanedText.substring(textStart, textEnd).trim();
-
-        if (messageBody) {
-            // 본문 내부의 자잘한 줄바꿈은 공백으로 합치고 특수문자 찌꺼기 청소
-            let cleanBody = messageBody.split('\n')
-                .map(l => l.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim())
-                .filter(l => l.length > 0)
-                .join(' ');
-
-            // 여러 개로 쪼개진 공백 단일화
-            cleanBody = cleanBody.replace(/\s+/g, ' ').trim();
-
-            if (cleanBody.length > 0) {
-                allMessages.push({ speaker: speaker, message: cleanBody });
-                if (speaker !== currentMyName) {
-                    detectedSpeakers.add(speaker);
+        // 🔥 핵심 필터링: 본문 내부의 @멘션 기호가 해당 줄에 없는 경우에만 화자 라인 후보로 삼습니다.
+        if (!line.includes('@')) {
+            for (let name of targetSpeakers) {
+                // 이름이 완전히 들어가 있는지 체크 (공백이나 나이/직급 찌꺼기 허용)
+                if (line.includes(name) || (name === '알레한드로 골리코프' && (line.includes('알레한드로') || line.includes('골리코프')))) {
+                    isSpeakerHeader = true;
+                    matchedName = name;
+                    break;
                 }
             }
+        }
+
+        if (isSpeakerHeader) {
+            // 이전에 수집 중이던 메시지가 있다면 안전하게 flush
+            if (currentSpeaker && currentMessageAccumulator.length > 0) {
+                saveCleanedMessage(currentSpeaker, currentMessageAccumulator);
+            }
+            // 새로운 화자로 상태 전환
+            currentSpeaker = matchedName;
+            if (currentSpeaker !== currentMyName) {
+                detectedSpeakers.add(currentSpeaker);
+            }
+            currentMessageAccumulator = [];
+        } else {
+            // 본문 라인 수집
+            if (currentSpeaker) {
+                currentMessageAccumulator.push(line);
+            }
+        }
+    }
+
+    // 루프가 끝난 뒤 남아있는 잔여 버퍼 비우기
+    if (currentSpeaker && currentMessageAccumulator.length > 0) {
+        saveCleanedMessage(currentSpeaker, currentMessageAccumulator);
+    }
+}
+
+// 추출된 본문 텍스트 내 자잘한 OCR 특수문자 및 공백 찌꺼기 최종 교정기
+function saveCleanedMessage(speaker, linesArray) {
+    const currentMyName = myNameInput.value.trim();
+    
+    let filteredLines = linesArray.map(l => {
+        // OCR 오작동으로 인한 자잘한 가비지 문자열 정제
+        let temp = l.replace(/[~`^\\_+=[\]{}|;<>]/g, "").trim();
+        // 본문에 이름만 덩그러니 남는 비정상적인 라인은 스킵
+        if (temp === "알레한드로 골리코프" || temp === "토르벤 파트로소프" || temp === currentMyName) {
+            return "";
+        }
+        return temp;
+    }).filter(l => l.length > 0);
+
+    if (filteredLines.length > 0) {
+        let finalBody = filteredLines.join(' ');
+        
+        // 다중 공백 처리
+        finalBody = finalBody.replace(/\s+/g, ' ').trim();
+
+        if (finalBody.length > 0) {
+            allMessages.push({
+                speaker: speaker,
+                message: finalBody
+            });
         }
     }
 }
@@ -221,7 +246,7 @@ function renderChat() {
         
         let displayMsg = msg.message;
         
-        // 멘션(@이름) 파란색 강조 처리
+        // 본문 안의 멘션 표시 파란색 하이라이팅
         displayMsg = displayMsg.replace(/(@[^\s]+)/g, '<span style="color: #1a56db; font-weight: bold;">$1</span>');
 
         const messageElement = document.createElement('div');
